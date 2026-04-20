@@ -59,7 +59,7 @@ COPY --from=build /rails /rails
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
     mkdir -p /rails/db /rails/log /rails/storage /rails/tmp && \
-    chmod +x /rails/bin/docker-entrypoint /rails/bin/rails /rails/bin/rake /rails/bin/setup && \
+    chmod +x /rails/bin/docker-entrypoint /rails/bin/rails /rails/bin/rake /rails/bin/setup /rails/bin/thrust && \
     chown -R rails:rails db log storage tmp
 USER 1000:1000
 
