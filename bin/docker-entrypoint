@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+if [ -z "${LD_PRELOAD+x}" ]; then
+    LD_PRELOAD=$(find /usr/lib -name libjemalloc.so.2 -print -quit 2>/dev/null || true)
+    export LD_PRELOAD
+fi
+
+is_server=0
+if [ "${1:-}" = "./bin/rails" ] && [ "${2:-}" = "server" ]; then
+  is_server=1
+fi
+if [ "${1:-}" = "rails" ] && [ "${2:-}" = "server" ]; then
+  is_server=1
+fi
+
+if [ "$is_server" = "1" ]; then
+  ./bin/rails db:prepare
+  ./bin/rails db:seed || true
+  if [ -n "${STRIPE_SECRET_KEY:-}" ]; then
+    ./bin/rails stripe:sync_plans || true
+    STRIPE_LIVE_MODE=1 ./bin/rails stripe:sync_plans || true
+  fi
+fi
+
+exec "$@"
