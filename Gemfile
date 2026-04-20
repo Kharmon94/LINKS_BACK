@@ -41,4 +41,4 @@ group :development do
   gem "letter_opener_web"
 end
 
-gem "webpush", "~> 0.3.2"
+gem "webpush", "~> 1.1.0"
