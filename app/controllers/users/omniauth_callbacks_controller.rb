@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-
+# this is a test comment delete after testing
 module Users
   class OmniauthCallbacksController < Devise::OmniauthCallbacksController
     skip_before_action :verify_authenticity_token, raise: false
