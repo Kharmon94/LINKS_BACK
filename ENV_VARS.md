@@ -8,7 +8,9 @@
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | Seeds first admin |
 | `DATABASE_URL` | Production (Postgres) | When unset, production falls back to SQLite files |
-| `SENDGRID_API_KEY` | Production email | SMTP user `apikey` |
+| `RESEND_API_KEY` | Production email | Used as SMTP password |
+| `RESEND_SMTP_PORT` | Optional | Defaults to `465` |
+| `RESEND_SMTP_USERNAME` | Optional | Defaults to `resend` |
 | `APP_HOST` or `MAILER_HOST` | Production email | `default_url_options` host |
 | `STRIPE_*` | Billing | See [STRIPE_SETUP.md](STRIPE_SETUP.md) |
 | `CRON_SECRET` | Cron endpoints | Bearer or `?secret=` |

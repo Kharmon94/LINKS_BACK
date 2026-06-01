@@ -60,12 +60,12 @@ Rails.application.configure do
   config.action_mailer.default_url_options = { host: host, protocol: "https" }
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {
-    address: "smtp.sendgrid.net",
-    port: 587,
-    user_name: "apikey",
-    password: ENV["SENDGRID_API_KEY"],
+    address: "smtp.resend.com",
+    port: Integer(ENV.fetch("RESEND_SMTP_PORT", "465")),
+    user_name: ENV.fetch("RESEND_SMTP_USERNAME", "resend"),
+    password: ENV.fetch("RESEND_API_KEY"),
     authentication: :plain,
-    enable_starttls_auto: true
+    tls: true
   }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
