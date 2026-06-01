@@ -13,6 +13,10 @@ fi
 if [ "${1:-}" = "rails" ] && [ "${2:-}" = "server" ]; then
   is_server=1
 fi
+# Dockerfile CMD: ./bin/thrust ./bin/rails server
+if [ "${1:-}" = "./bin/thrust" ] && [ "${2:-}" = "./bin/rails" ] && [ "${3:-}" = "server" ]; then
+  is_server=1
+fi
 
 if [ "$is_server" = "1" ]; then
   ./bin/rails db:prepare
