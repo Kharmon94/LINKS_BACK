@@ -20,7 +20,7 @@ gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 gem "cancancan"
 gem "stripe"
-gem "webpush"
+gem "webpush", ">= 1.0"
 
 gem "kamal", require: false
 gem "thruster", require: false
