@@ -6,7 +6,8 @@
 | `DEVISE_JWT_SECRET_KEY` | Recommended | JWT signing; defaults to `secret_key_base` if unset |
 | `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
-| `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | Seeds first admin |
+| `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
+| `STRIPE_PRICE_STARTER_MONTHLY` / `YEARLY` (+ `_LIVE`) | Billing | `db:seed` ensures Starter plan only when set (no placeholder IDs) |
 | `DATABASE_URL` | Production (Postgres) | When unset, production falls back to SQLite files |
 | `RESEND_API_KEY` | Production email | Used as SMTP password |
 | `RESEND_SMTP_PORT` | Optional | Defaults to `465` |
