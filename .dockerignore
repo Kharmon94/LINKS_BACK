@@ -43,3 +43,11 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Tests and docs — not needed in production image
+/spec
+/tmp
+/log
+/storage/*.sqlite3
+*.md
+!README.md

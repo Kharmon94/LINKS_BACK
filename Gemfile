@@ -1,7 +1,6 @@
 source "https://rubygems.org"
 
 gem "rails", "8.0.4"
-gem "sqlite3", ">= 2.1"
 gem "pg", group: :production
 gem "puma", ">= 5.0"
 gem "bootsnap", require: false
@@ -30,6 +29,7 @@ group :production do
 end
 
 group :development, :test do
+  gem "sqlite3", ">= 2.1"
   gem "debug", platforms: %i[mri windows], require: "debug/prelude"
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
