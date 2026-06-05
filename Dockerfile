@@ -25,7 +25,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY Gemfile Gemfile.lock ./
-RUN --mount=type=cache,target=/usr/local/bundle/cache \
+RUN --mount=type=cache,id=bundle-cache,target=/usr/local/bundle/cache \
     bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
