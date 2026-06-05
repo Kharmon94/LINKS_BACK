@@ -3,7 +3,8 @@
 module Api
   module V1
     class LinksController < BaseController
-      load_and_authorize_resource through: :current_user
+      load_and_authorize_resource through: :current_user, except: [:index]
+      before_action :set_user_links, only: [:index]
 
       def index
         render json: { links: @links.order(created_at: :desc).map(&:as_json_for_client) }
@@ -43,6 +44,10 @@ module Api
       end
 
       private
+
+      def set_user_links
+        @links = current_user.links
+      end
 
       def link_params
         p = params[:link].presence || params

@@ -46,3 +46,20 @@ if email.present? && password.present?
 else
   puts "Skipping admin seed (set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD)"
 end
+
+FEATURE_FLAG_DEFAULTS = [
+  { key: "campaigns", enabled: false, description: "Campaign management and grouping", category: "product" },
+  { key: "randomizer", enabled: false, description: "Random destination link rotation", category: "product" },
+  { key: "web_push", enabled: true, description: "Browser push notification subscriptions", category: "integrations" },
+  { key: "workspaces", enabled: false, description: "Team workspaces and collaboration", category: "product" },
+  { key: "custom_domains", enabled: false, description: "Custom branded short-link domains", category: "integrations" }
+].freeze
+
+FEATURE_FLAG_DEFAULTS.each do |attrs|
+  flag = FeatureFlag.find_or_initialize_by(key: attrs[:key])
+  flag.enabled = attrs[:enabled] if flag.new_record?
+  flag.description = attrs[:description]
+  flag.category = attrs[:category]
+  flag.save!
+end
+puts "Ensured #{FEATURE_FLAG_DEFAULTS.size} feature flag(s)"

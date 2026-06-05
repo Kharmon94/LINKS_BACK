@@ -28,7 +28,11 @@ Rails.application.routes.draw do
       delete "push/unsubscribe", to: "push_subscriptions#destroy"
 
       namespace :admin do
+        get "dashboard", to: "dashboard#show"
+        get "teams", to: "teams#index"
         resources :users, only: %i[index show update]
+        resources :links, only: %i[index show destroy]
+        resources :feature_flags, only: %i[index update], param: :key
       end
     end
   end

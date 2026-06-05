@@ -4,6 +4,7 @@ module Api
   module V1
     class CheckoutController < BaseController
       def create_session
+        authorize! :create, :checkout
         key = StripeMode.secret_key
         return head :service_unavailable if key.blank?
 

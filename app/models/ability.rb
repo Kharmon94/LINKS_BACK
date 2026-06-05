@@ -4,12 +4,6 @@ class Ability
   include CanCan::Ability
 
   def initialize(user)
-    return if user.nil?
-
-    if user.admin?
-      can :manage, :all
-    else
-      can :manage, Link, user_id: user.id
-    end
+    Permissions::Rules.new(user).apply_to(self)
   end
 end

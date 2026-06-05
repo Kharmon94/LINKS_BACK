@@ -68,7 +68,7 @@ class User < ApplicationRecord
   end
 
   def as_json_for_client
-    {
+    base = {
       id: id.to_s,
       email: email,
       name: name,
@@ -76,5 +76,30 @@ class User < ApplicationRecord
       role: role,
       admin: admin
     }
+    base.merge!(Permissions::Presenter.for(self))
+    base
+  end
+
+  def as_json_for_admin(include_recent_links: false)
+    base = as_json_for_client.merge(
+      linksCount: links.count,
+      createdAt: created_at&.iso8601,
+      provider: provider,
+      stripeCustomerId: stripe_customer_id
+    )
+    if include_recent_links
+      base[:recentLinks] = links.order(created_at: :desc).limit(5).map do |link|
+        json = link.as_json_for_client
+        {
+          id: json[:id],
+          name: json[:name],
+          shortCode: json[:shortCode],
+          shortUrl: json[:shortUrl],
+          clicks: json[:clicks],
+          createdAt: json[:createdAt]
+        }
+      end
+    end
+    base
   end
 end

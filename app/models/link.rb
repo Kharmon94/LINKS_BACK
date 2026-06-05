@@ -17,10 +17,18 @@ class Link < ApplicationRecord
       shortCode: short_code,
       shortUrl: "#{host}/#{short_code}",
       clicks: clicks_count,
-      createdAt: created_at&.strftime("%Y-%m-%d"),
+      createdAt: created_at&.iso8601,
       campaign: nil,
       isRandomizer: false
     }
+  end
+
+  def as_json_for_admin
+    json = as_json_for_client
+    json.merge(
+      userId: user_id.to_s,
+      userEmail: user.email
+    )
   end
 
   private
