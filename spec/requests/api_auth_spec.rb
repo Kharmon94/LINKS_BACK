@@ -25,13 +25,29 @@ RSpec.describe "API Auth", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
-  it "verifies magic link and returns jwt" do
+  it "validates magic link token and requires password" do
     user.assign_magic_link!
     post "/api/auth/verify", params: { token: user.magic_link_token }, as: :json
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
+    expect(body["requiresPassword"]).to eq(true)
+    expect(body["email"]).to eq(user.email)
+    expect(body["token"]).to be_nil
+    expect(user.reload.magic_link_token).to be_present
+  end
+
+  it "completes magic link with password and returns jwt" do
+    user.assign_magic_link!
+    token = user.magic_link_token
+    post "/api/auth/verify",
+         params: { token: token, password: "newpassword1", password_confirmation: "newpassword1" },
+         as: :json
+    expect(response).to have_http_status(:ok)
+    body = response.parsed_body
     expect(body["token"]).to be_present
     expect(body["user"]["email"]).to eq(user.email)
+    expect(user.reload.magic_link_token).to be_nil
+    expect(user.valid_password?("newpassword1")).to be(true)
   end
 
   it "returns session with bearer token" do

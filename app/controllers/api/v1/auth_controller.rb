@@ -30,6 +30,23 @@ module Api
           return render json: { error: "Invalid or expired token" }, status: :unauthorized
         end
 
+        password = params[:password].presence || params.dig(:auth, :password)
+        password_confirmation = params[:password_confirmation].presence || params.dig(:auth, :password_confirmation)
+
+        if password.blank?
+          return render json: {
+            requiresPassword: true,
+            email: user.email,
+            name: user.name
+          }
+        end
+
+        user.password = password
+        user.password_confirmation = password_confirmation.presence || password
+        unless user.save
+          return render json: { error: user.errors.full_messages.to_sentence }, status: :unprocessable_entity
+        end
+
         user.clear_magic_link!
         render json: { user: user.as_json_for_client, token: JwtService.encode(user) }
       end
