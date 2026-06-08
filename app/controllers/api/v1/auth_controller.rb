@@ -37,14 +37,25 @@ module Api
           return render json: {
             requiresPassword: true,
             email: user.email,
-            name: user.name
+            name: user.name,
+            mode: user.password_set? ? "sign_in" : "set_password"
           }
         end
 
-        user.password = password
-        user.password_confirmation = password_confirmation.presence || password
-        unless user.save
-          return render json: { error: user.errors.full_messages.to_sentence }, status: :unprocessable_entity
+        if user.password_set?
+          unless user.valid_password?(password)
+            return render json: { error: "Incorrect password" }, status: :unauthorized
+          end
+
+          user.update!(password_set_at: Time.current) if user.password_set_at.blank?
+        else
+          user.password = password
+          user.password_confirmation = password_confirmation.presence || password
+          unless user.save
+            return render json: { error: user.errors.full_messages.to_sentence }, status: :unprocessable_entity
+          end
+
+          user.update!(password_set_at: Time.current)
         end
 
         user.clear_magic_link!

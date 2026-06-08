@@ -60,6 +60,10 @@ class User < ApplicationRecord
       magic_link_expires_at.present? && magic_link_expires_at > Time.current
   end
 
+  def password_set?
+    password_set_at.present?
+  end
+
   def at_link_limit?
     limit = TIER_LIMITS[subscription_tier][:max_links]
     return false if limit == Float::INFINITY

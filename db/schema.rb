@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_05_201440) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_08_120000) do
   create_table "feature_flags", force: :cascade do |t|
     t.string "key", null: false
     t.boolean "enabled", default: false, null: false
@@ -62,6 +62,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_05_201440) do
     t.string "stripe_customer_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "password_set_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "provider IS NOT NULL AND uid IS NOT NULL"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true

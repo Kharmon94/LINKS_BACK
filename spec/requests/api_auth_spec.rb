@@ -9,7 +9,8 @@ RSpec.describe "API Auth", type: :request do
       password: "password123",
       name: "Member",
       subscription_tier: "free",
-      role: "owner"
+      role: "owner",
+      password_set_at: Time.current
     )
   end
 
@@ -25,29 +26,98 @@ RSpec.describe "API Auth", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
-  it "validates magic link token and requires password" do
+  it "validates magic link token and requires password for returning users" do
     user.assign_magic_link!
     post "/api/auth/verify", params: { token: user.magic_link_token }, as: :json
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
     expect(body["requiresPassword"]).to eq(true)
     expect(body["email"]).to eq(user.email)
+    expect(body["mode"]).to eq("sign_in")
     expect(body["token"]).to be_nil
     expect(user.reload.magic_link_token).to be_present
   end
 
-  it "completes magic link with password and returns jwt" do
+  it "signs in returning user with correct existing password without changing it" do
     user.assign_magic_link!
     token = user.magic_link_token
+    post "/api/auth/verify", params: { token: token, password: "password123" }, as: :json
+    expect(response).to have_http_status(:ok)
+    body = response.parsed_body
+    expect(body["token"]).to be_present
+    expect(body["user"]["email"]).to eq(user.email)
+    expect(user.reload.magic_link_token).to be_nil
+    expect(user.valid_password?("password123")).to be(true)
+  end
+
+  it "returns 401 for returning user with wrong password" do
+    user.assign_magic_link!
+    post "/api/auth/verify",
+         params: { token: user.magic_link_token, password: "wrongpassword" },
+         as: :json
+    expect(response).to have_http_status(:unauthorized)
+    expect(response.parsed_body["error"]).to eq("Incorrect password")
+    expect(user.reload.magic_link_token).to be_present
+  end
+
+  it "requires set_password mode for users without password_set_at" do
+    new_user = User.create!(
+      email: "new@example.com",
+      password: Devise.friendly_token(32),
+      name: "New User",
+      subscription_tier: "free",
+      role: "owner",
+      password_set_at: nil
+    )
+    new_user.assign_magic_link!
+    post "/api/auth/verify", params: { token: new_user.magic_link_token }, as: :json
+    expect(response).to have_http_status(:ok)
+    body = response.parsed_body
+    expect(body["requiresPassword"]).to eq(true)
+    expect(body["mode"]).to eq("set_password")
+  end
+
+  it "completes magic link with password and returns jwt for first-time password set" do
+    new_user = User.create!(
+      email: "firsttime@example.com",
+      password: Devise.friendly_token(32),
+      name: "First Timer",
+      subscription_tier: "free",
+      role: "owner",
+      password_set_at: nil
+    )
+    new_user.assign_magic_link!
+    token = new_user.magic_link_token
     post "/api/auth/verify",
          params: { token: token, password: "newpassword1", password_confirmation: "newpassword1" },
          as: :json
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
     expect(body["token"]).to be_present
-    expect(body["user"]["email"]).to eq(user.email)
-    expect(user.reload.magic_link_token).to be_nil
-    expect(user.valid_password?("newpassword1")).to be(true)
+    expect(body["user"]["email"]).to eq(new_user.email)
+    expect(new_user.reload.magic_link_token).to be_nil
+    expect(new_user.valid_password?("newpassword1")).to be(true)
+    expect(new_user.password_set_at).to be_present
+  end
+
+  it "returns set_password mode for users created via public link path" do
+    post "/api/links/create-with-account",
+         params: {
+           email: "public@example.com",
+           user_name: "Public User",
+           url: "https://example.com/page",
+           name: "My Link"
+         },
+         as: :json
+    expect(response).to have_http_status(:ok)
+
+    created_user = User.find_by(email: "public@example.com")
+    expect(created_user.password_set_at).to be_nil
+
+    created_user.assign_magic_link!
+    post "/api/auth/verify", params: { token: created_user.magic_link_token }, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body["mode"]).to eq("set_password")
   end
 
   it "returns session with bearer token" do
