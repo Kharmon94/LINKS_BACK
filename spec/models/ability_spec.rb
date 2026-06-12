@@ -84,7 +84,16 @@ RSpec.describe Ability, type: :model do
 
     it "reads admin symbols" do
       expect(ability).to be_able_to(:read, :admin_dashboard)
+      expect(ability).to be_able_to(:read, :admin_health)
       expect(ability).to be_able_to(:read, :admin_teams)
+      expect(ability).to be_able_to(:read, :admin_billing)
+      expect(ability).to be_able_to(:create, :admin_billing_portal)
+      expect(ability).to be_able_to(:create, :admin_billing_cancel)
+      expect(ability).to be_able_to(:read, :admin_campaigns)
+      expect(ability).to be_able_to(:destroy, :admin_campaigns)
+      expect(ability).to be_able_to(:read, :admin_workspaces)
+      expect(ability).to be_able_to(:read, :admin_custom_domains)
+      expect(ability).to be_able_to(:read, :admin_web_push)
     end
 
     it "still manages own links as solo user" do

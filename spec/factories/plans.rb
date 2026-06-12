@@ -1,11 +1,9 @@
 FactoryBot.define do
   factory :plan do
-    name { "MyString" }
-    stripe_price_id_monthly { "MyString" }
-    stripe_price_id_yearly { "MyString" }
-    stripe_price_id_monthly_live { "MyString" }
-    stripe_price_id_yearly_live { "MyString" }
-    interval { "MyString" }
-    active { false }
+    name { "Starter" }
+    tier { "starter" }
+    stripe_price_id_monthly { "price_starter_monthly" }
+    stripe_price_id_yearly { "price_starter_yearly" }
+    active { true }
   end
 end

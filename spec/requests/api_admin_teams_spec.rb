@@ -11,20 +11,24 @@ RSpec.describe "Admin teams API", type: :request do
     user
   end
 
-  it "returns role stats and members" do
+  it "returns paginated Team entities" do
+    team = user.primary_team
     get "/api/v1/admin/teams", headers: auth_headers(admin)
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
-    expect(body["stats"]).to include("owner", "admin", "member")
-    expect(body["members"]).to be_an(Array)
+    expect(body["teams"]).to be_an(Array)
+    expect(body["teams"].first).to include("id", "name", "memberCount", "workspaceCount")
+    expect(body["teams"].map { |t| t["id"] }).to include(team.id.to_s)
     expect(body["meta"]).to include("page", "total")
   end
 
-  it "filters by role" do
-    get "/api/v1/admin/teams", params: { role: "member" }, headers: auth_headers(admin)
+  it "shows team detail with members" do
+    team = user.primary_team
+    get "/api/v1/admin/teams/#{team.id}", headers: auth_headers(admin)
     expect(response).to have_http_status(:ok)
-    emails = response.parsed_body["members"].map { |m| m["email"] }
-    expect(emails).to include(user.email)
+    team_json = response.parsed_body["team"]
+    expect(team_json["members"]).to be_an(Array)
+    expect(team_json["members"].first["email"]).to eq(user.email)
   end
 
   it "forbids non-admin" do

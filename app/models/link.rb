@@ -1,25 +1,121 @@
 # frozen_string_literal: true
 
 class Link < ApplicationRecord
-  belongs_to :user
+  LINK_TYPES = %w[single randomizer].freeze
 
-  validates :destination_url, presence: true
+  belongs_to :user
+  belongs_to :workspace, optional: true
+  belongs_to :custom_domain, optional: true
+  belongs_to :campaign, optional: true
+  has_many :pool_entries, class_name: "LinkPoolEntry", dependent: :destroy
+  has_many :click_events, dependent: :destroy
+
+  accepts_nested_attributes_for :pool_entries, allow_destroy: true
+
+  validates :destination_url, presence: true, if: :single?
   validates :short_code, presence: true, uniqueness: true
-  validate :destination_must_be_http_url
+  validates :link_type, inclusion: { in: LINK_TYPES }
+  validate :destination_must_be_http_url, if: :single?
+  validate :randomizer_requires_pool, if: :randomizer?
+  validate :custom_short_code_format, if: -> { short_code.present? && short_code_changed? }
 
   before_validation :ensure_short_code, on: :create
+  before_validation :sync_randomizer_destination
 
-  def as_json_for_client(host: ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io"))
+  scope :randomizers, -> { where(link_type: "randomizer") }
+  scope :singles, -> { where(link_type: "single") }
+
+  def single?
+    link_type == "single"
+  end
+
+  def randomizer?
+    link_type == "randomizer"
+  end
+
+  def pick_pool_entry
+    entries = pool_entries.to_a
+    return nil if entries.empty?
+
+    total = entries.sum(&:weight)
+    roll = rand(total)
+    cumulative = 0
+    entries.each do |entry|
+      cumulative += entry.weight
+      return entry if roll < cumulative
+    end
+    entries.last
+  end
+
+  def redirect_destination_url
+    if randomizer?
+      pick_pool_entry&.destination_url
+    else
+      destination_url
+    end
+  end
+
+  def merged_destination_url(base_url = redirect_destination_url)
+    return nil if base_url.blank?
+
+    uri = URI.parse(base_url)
+    params = URI.decode_www_form(uri.query || "")
+    utm_params = {
+      "utm_source" => utm_source,
+      "utm_medium" => utm_medium,
+      "utm_campaign" => utm_campaign,
+      "utm_term" => utm_term,
+      "utm_content" => utm_content
+    }
+    utm_params.each do |key, value|
+      next if value.blank?
+
+      params << [key, value] unless params.any? { |k, _| k == key }
+    end
+    uri.query = URI.encode_www_form(params) if params.any?
+    uri.to_s
+  rescue URI::InvalidURIError
+    base_url
+  end
+
+  def record_click!(request)
+    metadata = ClickMetadata.from_request(request)
+    transaction do
+      click_events.create!(metadata.merge(clicked_at: Time.current))
+      increment!(:clicks_count)
+    end
+  end
+
+  def short_link_host
+    custom_domain&.verified? ? custom_domain.domain : ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io")
+  end
+
+  def as_json_for_client(host: nil)
+    short_host = (host || short_link_host).to_s.sub(%r{\Ahttps?://}i, "")
+    full_short = "https://#{short_host}/#{short_code}"
     {
       id: id.to_s,
       name: name.presence || "Untitled",
-      originalUrl: destination_url,
+      originalUrl: randomizer? ? "#{pool_entries.size} destinations" : destination_url,
       shortCode: short_code,
-      shortUrl: "#{host}/#{short_code}",
+      shortUrl: "#{short_host}/#{short_code}",
+      fullShortUrl: full_short,
       clicks: clicks_count,
       createdAt: created_at&.iso8601,
-      campaign: nil,
-      isRandomizer: false
+      linkType: link_type,
+      campaign: campaign ? { id: campaign.id.to_s, name: campaign.name } : nil,
+      campaignId: campaign_id&.to_s,
+      workspaceId: workspace_id&.to_s,
+      customDomainId: custom_domain_id&.to_s,
+      isRandomizer: randomizer?,
+      poolEntries: pool_entries.map { |e| pool_entry_json(e) },
+      utmParams: {
+        source: utm_source,
+        medium: utm_medium,
+        campaign: utm_campaign,
+        term: utm_term,
+        content: utm_content
+      }
     }
   end
 
@@ -33,16 +129,45 @@ class Link < ApplicationRecord
 
   private
 
+  def pool_entry_json(entry)
+    {
+      id: entry.id.to_s,
+      url: entry.destination_url,
+      weight: entry.weight,
+      position: entry.position
+    }
+  end
+
   def destination_must_be_http_url
     return if UrlValidator.safe_http_url?(destination_url)
 
     errors.add(:destination_url, "must be a valid http(s) URL")
   end
 
+  def randomizer_requires_pool
+    active_entries = pool_entries.reject(&:marked_for_destruction?)
+    if active_entries.size < 2
+      errors.add(:base, "Randomizer links require at least 2 pool entries")
+    end
+  end
+
+  def custom_short_code_format
+    return if short_code.match?(/\A[a-z0-9_-]+\z/i)
+
+    errors.add(:short_code, "may only contain letters, numbers, hyphens, and underscores")
+  end
+
   def ensure_short_code
     return if short_code.present?
 
     self.short_code = generate_unique_short_code
+  end
+
+  def sync_randomizer_destination
+    return unless randomizer?
+
+    first = pool_entries.reject(&:marked_for_destruction?).first
+    self.destination_url = first.destination_url if first&.destination_url.present?
   end
 
   def generate_unique_short_code

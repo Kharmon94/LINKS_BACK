@@ -24,7 +24,7 @@ module Permissions
     end
 
     def billing_allowed?
-      BILLING_ROLES.include?(user.role)
+      BILLING_ROLES.include?(user.team_role)
     end
 
     def portal_allowed?
@@ -63,7 +63,7 @@ module Permissions
           max: max_links == Float::INFINITY ? nil : max_links
         },
         campaigns: {
-          used: 0,
+          used: user.campaigns.count,
           max: max_campaigns == Float::INFINITY ? nil : max_campaigns
         }
       }
@@ -82,11 +82,12 @@ module Permissions
 
     def campaign_permissions
       enabled = feature_enabled?(:campaigns)
+      can_manage = enabled && user.team_role.in?(%w[owner admin])
       {
         read: enabled,
-        create: enabled,
-        update: enabled,
-        destroy: enabled
+        create: can_manage && !user.at_campaign_limit?,
+        update: can_manage,
+        destroy: can_manage
       }
     end
 
@@ -94,8 +95,8 @@ module Permissions
       enabled = feature_enabled?(:workspaces)
       {
         read: enabled,
-        invite: enabled && user.role.in?(%w[owner admin]),
-        manage: enabled && user.role == "owner"
+        invite: enabled && user.team_role.in?(%w[owner admin]),
+        manage: enabled && user.team_role == "owner"
       }
     end
 
@@ -103,16 +104,16 @@ module Permissions
       enabled = feature_enabled?(:workspaces)
       {
         read: enabled,
-        create: enabled && user.role.in?(%w[owner admin]),
-        update: enabled && user.role.in?(%w[owner admin]),
-        destroy: enabled && user.role == "owner"
+        create: enabled && user.team_role.in?(%w[owner admin]),
+        update: enabled && user.team_role.in?(%w[owner admin]),
+        destroy: enabled && user.team_role == "owner"
       }
     end
 
     def settings_permissions
       {
         billing: billing_allowed?,
-        domains: feature_enabled?(:custom_domains) && user.role.in?(%w[owner admin])
+        domains: CustomDomain.allowed_for?(user) && user.team_role.in?(%w[owner admin])
       }
     end
 
@@ -124,13 +125,15 @@ module Permissions
     end
 
     def apply_solo_user_rules(ability)
-      ability.can %i[show update destroy], Link, user_id: user.id
-      ability.can :create, Link unless user.at_link_limit?
+      unless feature_enabled?(:workspaces)
+        ability.can %i[show update destroy], Link, user_id: user.id
+        ability.can :create, Link unless user.at_link_limit?
+      end
 
       ability.can :create, WebPushSubscription, user_id: user.id
       ability.can :destroy, WebPushSubscription, user_id: user.id
 
-      ability.can :show, User, id: user.id
+      ability.can %i[show update], User, id: user.id
 
       ability.can :create, :checkout if billing_allowed?
       ability.can :create, :portal if portal_allowed?
@@ -151,7 +154,20 @@ module Permissions
       ability.can %i[index show destroy], WebPushSubscription
 
       ability.can :read, :admin_dashboard
+      ability.can :read, :admin_health
       ability.can :read, :admin_teams
+      ability.can :read, :admin_billing
+      ability.can :create, :admin_billing_portal
+      ability.can :create, :admin_billing_cancel
+
+      ability.can :read, :admin_campaigns
+      ability.can :destroy, :admin_campaigns
+      ability.can :read, :admin_workspaces
+      ability.can :destroy, :admin_workspaces
+      ability.can :read, :admin_custom_domains
+      ability.can :destroy, :admin_custom_domains
+      ability.can :read, :admin_web_push
+      ability.can :destroy, :admin_web_push
     end
   end
 end

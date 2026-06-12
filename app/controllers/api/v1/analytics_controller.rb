@@ -1,0 +1,42 @@
+# frozen_string_literal: true
+
+module Api
+  module V1
+    class AnalyticsController < BaseController
+      before_action :authorize_analytics!
+
+      def overview
+        data = Analytics::Aggregator.new(current_user.links).overview_for(current_user)
+        render json: { analytics: data }
+      end
+
+      def link_analytics
+        link = current_user.links.find(link_id_param)
+        authorize! :show, link
+        data = Analytics::Aggregator.new(link).link_analytics(link)
+        render json: { analytics: data }
+      end
+
+      def campaign_analytics
+        campaign = current_user.campaigns.find(campaign_id_param)
+        authorize! :read, campaign
+        data = Analytics::Aggregator.new(campaign).campaign_analytics(campaign)
+        render json: { analytics: data }
+      end
+
+      private
+
+      def authorize_analytics!
+        authorize! :read, :analytics
+      end
+
+      def link_id_param
+        params[:link_id].presence || params[:id]
+      end
+
+      def campaign_id_param
+        params[:campaign_id].presence || params[:id]
+      end
+    end
+  end
+end

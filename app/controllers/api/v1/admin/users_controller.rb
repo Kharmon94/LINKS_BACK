@@ -28,6 +28,7 @@ module Api
         def update
           authorize! :update, @user
           if @user.update(admin_user_params)
+            sync_personal_team_membership!(@user) if @user.saved_change_to_role?
             render json: { user: @user.as_json_for_admin(include_recent_links: true) }
           else
             render json: { error: @user.errors.full_messages.to_sentence }, status: :unprocessable_entity
@@ -48,7 +49,19 @@ module Api
           if params.key?(:role) && %w[owner admin member].include?(params[:role].to_s)
             attrs[:role] = params[:role]
           end
+          if params.key?(:subscription_tier) || params.key?(:subscriptionTier)
+            tier = (params[:subscription_tier] || params[:subscriptionTier]).to_s
+            attrs[:subscription_tier] = tier if User::TIER_LIMITS.key?(tier)
+          end
           attrs
+        end
+
+        def sync_personal_team_membership!(user)
+          membership = user.team_memberships.joins(:team).find_by(teams: { personal: true })
+          return unless membership
+          return if membership.role == user.role
+
+          membership.update!(role: user.role)
         end
       end
     end

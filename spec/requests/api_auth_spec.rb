@@ -41,13 +41,28 @@ RSpec.describe "API Auth", type: :request do
   it "signs in returning user with correct existing password without changing it" do
     user.assign_magic_link!
     token = user.magic_link_token
+    hash_before = user.encrypted_password
     post "/api/auth/verify", params: { token: token, password: "password123" }, as: :json
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
     expect(body["token"]).to be_present
     expect(body["user"]["email"]).to eq(user.email)
-    expect(user.reload.magic_link_token).to be_nil
+    user.reload
+    expect(user.magic_link_token).to be_nil
     expect(user.valid_password?("password123")).to be(true)
+    expect(user.encrypted_password).to eq(hash_before)
+  end
+
+  it "does not rotate password hash on consecutive magic-link sign-ins" do
+    user.assign_magic_link!
+    post "/api/auth/verify", params: { token: user.magic_link_token, password: "password123" }, as: :json
+    expect(response).to have_http_status(:ok)
+    hash_after_first = user.reload.encrypted_password
+
+    user.assign_magic_link!
+    post "/api/auth/verify", params: { token: user.magic_link_token, password: "password123" }, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(user.reload.encrypted_password).to eq(hash_after_first)
   end
 
   it "returns 401 for returning user with wrong password" do

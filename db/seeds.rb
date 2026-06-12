@@ -18,6 +18,7 @@ yearly_live = ENV["STRIPE_PRICE_STARTER_YEARLY_LIVE"].to_s.strip.presence
 
 if monthly.present? || yearly.present? || monthly_live.present? || yearly_live.present?
   plan = Plan.find_or_initialize_by(name: "Starter")
+  plan.tier = "starter"
   plan.stripe_price_id_monthly = monthly if monthly
   plan.stripe_price_id_yearly = yearly if yearly
   plan.stripe_price_id_monthly_live = monthly_live if monthly_live
@@ -26,7 +27,26 @@ if monthly.present? || yearly.present? || monthly_live.present? || yearly_live.p
   plan.save!
   puts "Ensured Starter plan from STRIPE_PRICE_STARTER_* env"
 else
-  puts "Skipping plan seed (set STRIPE_PRICE_STARTER_MONTHLY / STRIPE_PRICE_STARTER_YEARLY)"
+  puts "Skipping Starter plan seed (set STRIPE_PRICE_STARTER_MONTHLY / STRIPE_PRICE_STARTER_YEARLY)"
+end
+
+growth_monthly = ENV["STRIPE_PRICE_GROWTH_MONTHLY"].to_s.strip.presence
+growth_yearly = ENV["STRIPE_PRICE_GROWTH_YEARLY"].to_s.strip.presence
+growth_monthly_live = ENV["STRIPE_PRICE_GROWTH_MONTHLY_LIVE"].to_s.strip.presence
+growth_yearly_live = ENV["STRIPE_PRICE_GROWTH_YEARLY_LIVE"].to_s.strip.presence
+
+if growth_monthly.present? || growth_yearly.present? || growth_monthly_live.present? || growth_yearly_live.present?
+  growth = Plan.find_or_initialize_by(name: "Growth")
+  growth.tier = "growth"
+  growth.stripe_price_id_monthly = growth_monthly if growth_monthly
+  growth.stripe_price_id_yearly = growth_yearly if growth_yearly
+  growth.stripe_price_id_monthly_live = growth_monthly_live if growth_monthly_live
+  growth.stripe_price_id_yearly_live = growth_yearly_live if growth_yearly_live
+  growth.active = true
+  growth.save!
+  puts "Ensured Growth plan from STRIPE_PRICE_GROWTH_* env"
+else
+  puts "Skipping Growth plan seed (set STRIPE_PRICE_GROWTH_MONTHLY / STRIPE_PRICE_GROWTH_YEARLY)"
 end
 
 email = ENV["ADMIN_SEED_EMAIL"].to_s.strip.presence
@@ -42,13 +62,14 @@ if email.present? && password.present?
     role: "owner"
   )
   user.save!
+  user.update!(password_set_at: Time.current) if user.password_set_at.blank?
   puts "Ensured admin: #{email}"
 else
   puts "Skipping admin seed (set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD)"
 end
 
 FEATURE_FLAG_DEFAULTS = [
-  { key: "campaigns", enabled: false, description: "Campaign management and grouping", category: "product" },
+  { key: "campaigns", enabled: true, description: "Campaign management and grouping", category: "product" },
   { key: "randomizer", enabled: false, description: "Random destination link rotation", category: "product" },
   { key: "web_push", enabled: true, description: "Browser push notification subscriptions", category: "integrations" },
   { key: "workspaces", enabled: false, description: "Team workspaces and collaboration", category: "product" },
