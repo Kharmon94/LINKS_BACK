@@ -17,6 +17,9 @@
 | `CRON_SECRET` | Cron endpoints | Bearer or `?secret=` |
 | `AWS_*` | S3 uploads | When all set, Active Storage uses `:amazon` |
 | `SHORT_LINK_HOST` | Optional | Host shown in link JSON (no scheme), e.g. `links.blackcollar.io` |
+| `API_HOST` | Optional | API deployment host (e.g. `links-api-production.up.railway.app`). Skips custom-domain lookup on redirect for faster default short links. |
+| `REDIRECT_ASYNC_CLICKS` | Optional | Set to `true` to record clicks in a background job so the 302 returns sooner. Requires Solid Queue (`SOLID_QUEUE_IN_PUMA=true`) or clicks may not persist. |
+| `SOLID_QUEUE_IN_PUMA` | Optional | Run `true` on single-server Railway deploys so background jobs (e.g. async click recording) process. |
 | `GEOIP_DB_PATH` | Optional | Path to MaxMind **GeoLite2-City** `.mmdb` for click geo fallback (see below) |
 | `REDIRECT_ALLOWED_HOSTS` | Optional | Comma-separated extra hosts allowed for redirects (usually unnecessary after host-relaxation) |
 
@@ -40,7 +43,7 @@ Short URLs must hit **Rails** `GET /:short_code` (`RedirectsController`), not th
 | Setup | What to do |
 |-------|------------|
 | **Recommended** | Point `SHORT_LINK_HOST` (e.g. `links.blackcollar.io`) at the **API** Railway service. Serve the dashboard SPA on a separate host (e.g. `app.blackcollar.io`). |
-| **Shared host** | If `links.blackcollar.io` serves the **frontend**, set `VITE_API_URL` to your API URL at frontend build time. The SPA forwards `/:short_code` to the API before redirecting to the destination. |
+| **Shared host** | If `links.blackcollar.io` serves the **frontend**, set `VITE_API_URL` to your API URL at frontend build time. A lightweight inline script in `index.html` forwards `/:short_code` to the API **before** React loads (no 1MB bundle wait). |
 
 Ensure `VITE_API_URL` on the frontend build matches the live API (with `https://`, no trailing slash).
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push | Web Push VAPID keys |

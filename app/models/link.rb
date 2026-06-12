@@ -86,7 +86,14 @@ class Link < ApplicationRecord
   end
 
   def record_click!(request, pool_entry: nil, destination_url: nil)
-    metadata = ClickMetadata.from_request(request)
+    record_click_from_metadata!(
+      ClickMetadata.from_request(request),
+      pool_entry: pool_entry,
+      destination_url: destination_url
+    )
+  end
+
+  def record_click_from_metadata!(metadata, pool_entry: nil, destination_url: nil)
     transaction do
       click_events.create!(
         metadata.merge(
