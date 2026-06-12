@@ -20,6 +20,8 @@ gem "omniauth-rails_csrf_protection"
 gem "cancancan"
 gem "stripe"
 gem "webpush", ">= 1.0"
+gem "geocoder"
+gem "countries"
 
 gem "kamal", require: false
 gem "thruster", require: false

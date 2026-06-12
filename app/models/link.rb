@@ -10,6 +10,8 @@ class Link < ApplicationRecord
   has_many :pool_entries, class_name: "LinkPoolEntry", dependent: :destroy
   has_many :click_events, dependent: :destroy
 
+  ResolvedRedirect = Struct.new(:url, :pool_entry, keyword_init: true)
+
   accepts_nested_attributes_for :pool_entries, allow_destroy: true
 
   validates :destination_url, presence: true, if: :single?
@@ -47,12 +49,17 @@ class Link < ApplicationRecord
     entries.last
   end
 
-  def redirect_destination_url
+  def resolve_redirect
     if randomizer?
-      pick_pool_entry&.destination_url
+      entry = pick_pool_entry
+      ResolvedRedirect.new(url: entry&.destination_url, pool_entry: entry)
     else
-      destination_url
+      ResolvedRedirect.new(url: destination_url, pool_entry: nil)
     end
+  end
+
+  def redirect_destination_url
+    resolve_redirect.url
   end
 
   def merged_destination_url(base_url = redirect_destination_url)
@@ -78,10 +85,16 @@ class Link < ApplicationRecord
     base_url
   end
 
-  def record_click!(request)
+  def record_click!(request, pool_entry: nil, destination_url: nil)
     metadata = ClickMetadata.from_request(request)
     transaction do
-      click_events.create!(metadata.merge(clicked_at: Time.current))
+      click_events.create!(
+        metadata.merge(
+          clicked_at: Time.current,
+          pool_entry: pool_entry,
+          destination_url: destination_url
+        )
+      )
       increment!(:clicks_count)
     end
   end

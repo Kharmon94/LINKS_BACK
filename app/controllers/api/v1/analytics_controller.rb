@@ -3,22 +3,24 @@
 module Api
   module V1
     class AnalyticsController < BaseController
+      include WorkspaceScoping
+
       before_action :authorize_analytics!
 
       def overview
-        data = Analytics::Aggregator.new(current_user.links).overview_for(current_user)
+        data = Analytics::Aggregator.new(scoped_links).overview_for(current_user)
         render json: { analytics: data }
       end
 
       def link_analytics
-        link = current_user.links.find(link_id_param)
+        link = scoped_links.find(link_id_param)
         authorize! :show, link
         data = Analytics::Aggregator.new(link).link_analytics(link)
         render json: { analytics: data }
       end
 
       def campaign_analytics
-        campaign = current_user.campaigns.find(campaign_id_param)
+        campaign = scoped_campaigns.find(campaign_id_param)
         authorize! :read, campaign
         data = Analytics::Aggregator.new(campaign).campaign_analytics(campaign)
         render json: { analytics: data }

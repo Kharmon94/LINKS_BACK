@@ -2,6 +2,7 @@
 
 class ClickEvent < ApplicationRecord
   belongs_to :link
+  belongs_to :pool_entry, class_name: "LinkPoolEntry", optional: true
 
   validates :clicked_at, presence: true
 
@@ -16,7 +17,9 @@ class ClickEvent < ApplicationRecord
       city: city,
       device: device_type,
       browser: browser,
-      referrer: referrer.presence || "Direct"
+      referrer: referrer.presence || "Direct",
+      poolEntryId: pool_entry_id&.to_s,
+      destinationUrl: destination_url
     }
   end
 end

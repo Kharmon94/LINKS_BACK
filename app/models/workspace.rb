@@ -16,6 +16,10 @@ class Workspace < ApplicationRecord
     0
   end
 
+  def total_clicks
+    ClickEvent.where(link_id: links.select(:id)).count
+  end
+
   def as_json_for_client(include_members: false)
     json = {
       id: id.to_s,
@@ -23,6 +27,7 @@ class Workspace < ApplicationRecord
       description: description.to_s,
       linksCount: links_count,
       campaignsCount: campaigns_count,
+      totalClicks: total_clicks,
       createdAt: created_at&.iso8601
     }
     if include_members

@@ -18,46 +18,52 @@ module Analytics
     end
 
     def overview_for(user)
-      links = user.links
-      campaigns = user.campaigns
-      total_clicks = links.sum(:clicks_count)
+      links = @scope
+      campaigns = scoped_campaigns_for(user)
+      link_ids = links.select(:id)
+      events = ClickEvent.where(link_id: link_ids)
+      total_clicks = events.count
       week_ago = 7.days.ago
-      clicks_this_week = ClickEvent.where(link_id: links.select(:id))
-                                   .where("clicked_at >= ?", week_ago).count
-      clicks_prev_week = ClickEvent.where(link_id: links.select(:id))
-                                   .where(clicked_at: (14.days.ago)...(week_ago)).count
+      clicks_this_week = events.where("clicked_at >= ?", week_ago).count
+      clicks_prev_week = events.where(clicked_at: (14.days.ago)...(week_ago)).count
       growth = clicks_prev_week.positive? ? ((clicks_this_week - clicks_prev_week).to_f / clicks_prev_week * 100).round(1) : 0.0
 
-      {
+      result = {
         totalClicks: total_clicks,
         totalLinks: links.count,
         totalCampaigns: campaigns.count,
         clickGrowth: growth,
         topLinks: top_links(links, total_clicks),
         topCampaigns: top_campaigns(campaigns, total_clicks),
-        topWorkspaces: []
+        topWorkspaces: top_workspaces(links, total_clicks),
+        clicksOverTime: clicks_over_time_by_period(events),
+        deviceBreakdown: device_breakdown(events)
       }
+      result
     end
 
     def link_analytics(link)
       events = ClickEvent.where(link_id: link.id)
-      total = link.clicks_count
+      total = events.count
 
-      {
+      analytics = {
         link: link.as_json_for_client,
         totalClicks: total,
         quickStats: quick_stats(events, 1),
         clicksOverTime: clicks_over_time_by_period(events),
         deviceBreakdown: device_breakdown(events),
         topLocations: top_locations(events),
-        referrerBreakdown: referrer_breakdown(events)
+        referrerBreakdown: referrer_breakdown(events),
+        recentClicks: recent_clicks(events)
       }
+      analytics[:poolBreakdown] = pool_breakdown(events, link) if link.randomizer?
+      analytics
     end
 
     def campaign_analytics(campaign)
       link_ids = campaign.links.pluck(:id)
       events = ClickEvent.where(link_id: link_ids)
-      total = campaign.total_clicks
+      total = events.count
 
       {
         campaign: campaign.as_json_for_client,
@@ -66,6 +72,7 @@ module Analytics
         clicksOverTime: clicks_over_time_by_period(events),
         deviceBreakdown: device_breakdown(events),
         topLocations: top_locations(events),
+        referrerBreakdown: referrer_breakdown(events),
         recentClicks: recent_clicks(events.limit(10))
       }
     end
@@ -84,9 +91,21 @@ module Analytics
       end
     end
 
+    def scoped_campaigns_for(user)
+      if FeatureFlag.enabled?(:workspaces) && user.active_workspace_id.present?
+        user.campaigns.where(workspace_id: user.active_workspace_id)
+      else
+        user.campaigns
+      end
+    end
+
     def top_links(links, total_clicks)
-      links.order(clicks_count: :desc).limit(5).map do |link|
-        clicks = link.clicks_count
+      link_ids = links.pluck(:id)
+      return [] if link_ids.empty?
+
+      counts_by_link = ClickEvent.where(link_id: link_ids).group(:link_id).count
+      links.where(id: link_ids).sort_by { |link| -(counts_by_link[link.id] || 0) }.first(5).map do |link|
+        clicks = counts_by_link[link.id] || 0
         {
           shortUrl: link.as_json_for_client[:shortUrl],
           clicks: clicks,
@@ -96,7 +115,7 @@ module Analytics
     end
 
     def top_campaigns(campaigns, total_clicks)
-      campaigns.map { |c| [c, c.total_clicks] }
+      campaigns.map { |c| [c, ClickEvent.where(link_id: c.links.select(:id)).count] }
                .sort_by { |_, clicks| -clicks }
                .first(5)
                .map do |campaign, clicks|
@@ -106,6 +125,39 @@ module Analytics
           percentage: total_clicks.positive? ? (clicks.to_f / total_clicks * 100).round : 0
         }
       end
+    end
+
+    def top_workspaces(links, total_clicks)
+      return [] unless FeatureFlag.enabled?(:workspaces)
+
+      workspace_ids = links.where.not(workspace_id: nil).distinct.pluck(:workspace_id)
+      return [] if workspace_ids.empty?
+
+      Workspace.where(id: workspace_ids).map do |workspace|
+        workspace_link_ids = links.where(workspace_id: workspace.id).select(:id)
+        clicks = ClickEvent.where(link_id: workspace_link_ids).count
+        {
+          name: workspace.name,
+          clicks: clicks,
+          percentage: total_clicks.positive? ? (clicks.to_f / total_clicks * 100).round : 0
+        }
+      end.sort_by { |row| -row[:clicks] }.first(5)
+    end
+
+    def pool_breakdown(events, link)
+      counts_by_entry = events.where.not(pool_entry_id: nil).group(:pool_entry_id).count
+      total = events.count
+
+      link.pool_entries.map do |entry|
+        clicks = counts_by_entry[entry.id] || 0
+        {
+          poolEntryId: entry.id.to_s,
+          url: entry.destination_url,
+          weight: entry.weight,
+          clicks: clicks,
+          percentage: total.positive? ? (clicks.to_f / total * 100).round : 0
+        }
+      end.sort_by { |row| -row[:clicks] }
     end
 
     def quick_stats(events, links_count, created_at: nil)

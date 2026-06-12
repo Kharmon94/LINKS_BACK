@@ -3,6 +3,8 @@
 module Api
   module V1
     class CampaignsController < BaseController
+      include WorkspaceScoping
+
       before_action :require_campaigns_feature!
       load_and_authorize_resource through: :current_user, except: %i[index assign_links unassign_links]
       before_action :set_campaign, only: %i[assign_links unassign_links]
@@ -76,14 +78,6 @@ module Api
 
       def set_campaign
         @campaign = scoped_campaigns.find(params[:id])
-      end
-
-      def scoped_campaigns
-        if FeatureFlag.enabled?(:workspaces) && current_user.active_workspace_id.present?
-          current_user.campaigns.where(workspace_id: current_user.active_workspace_id)
-        else
-          current_user.campaigns
-        end
       end
 
       def campaign_params

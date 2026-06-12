@@ -17,7 +17,21 @@
 | `CRON_SECRET` | Cron endpoints | Bearer or `?secret=` |
 | `AWS_*` | S3 uploads | When all set, Active Storage uses `:amazon` |
 | `SHORT_LINK_HOST` | Optional | Host shown in link JSON (no scheme), e.g. `links.blackcollar.io` |
+| `GEOIP_DB_PATH` | Optional | Path to MaxMind **GeoLite2-City** `.mmdb` for click geo fallback (see below) |
 | `REDIRECT_ALLOWED_HOSTS` | Optional | Comma-separated extra hosts allowed for redirects (usually unnecessary after host-relaxation) |
+
+### GeoIP (click analytics)
+
+Redirect clicks resolve country/city in this order:
+
+1. **CDN headers** (no lookup): `CF-IPCountry`, `CloudFront-Viewer-Country`, `X-Vercel-IP-Country` — ISO codes are mapped to full country names automatically
+2. **Local GeoLite2** via the `geocoder` gem when `GEOIP_DB_PATH` points to a valid `.mmdb` file (default: `vendor/GeoLite2-City.mmdb`)
+
+If the API sits behind **Cloudflare**, enable IP Geolocation on the zone (or ensure `CF-IPCountry` is passed through to the origin). Without CDN headers or a local MMDB, country/city stay `nil` but redirects still work.
+
+Download GeoLite2-City from a free [MaxMind account](https://www.maxmind.com/en/geolite2/signup), place the MMDB on the API service, and set `GEOIP_DB_PATH`. Update the database periodically.
+
+Run `bundle exec rake analytics:reconcile_clicks` once after deploy if `links.clicks_count` may drift from `click_events`.
 
 ### Short link routing (production)
 

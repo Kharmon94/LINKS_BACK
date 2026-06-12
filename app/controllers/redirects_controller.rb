@@ -5,10 +5,11 @@ class RedirectsController < ApplicationController
     link = find_link_for_request
     return head :not_found unless link
 
-    destination = link.merged_destination_url(link.redirect_destination_url)
+    resolved = link.resolve_redirect
+    destination = link.merged_destination_url(resolved.url)
     return head :not_found if destination.blank?
 
-    link.record_click!(request)
+    link.record_click!(request, pool_entry: resolved.pool_entry, destination_url: destination)
     redirect_to destination, allow_other_host: true, status: :found
   end
 

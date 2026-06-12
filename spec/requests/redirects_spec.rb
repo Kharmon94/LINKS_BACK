@@ -70,6 +70,17 @@ RSpec.describe "Redirects", type: :request do
     expect(event.ip_hash).to be_present
   end
 
+  it "stores geo from CDN country header" do
+    get "/#{link.short_code}", headers: {
+      "HTTP_HOST" => short_link_host,
+      "HTTP_CF_IPCOUNTRY" => "US"
+    }
+
+    event = link.click_events.last
+    expect(event.country).to eq("United States")
+    expect(response).to have_http_status(:found)
+  end
+
   it "does not overwrite existing UTM params on destination" do
     link.update!(destination_url: "https://example.com/page?utm_source=existing")
 
@@ -78,7 +89,7 @@ RSpec.describe "Redirects", type: :request do
     expect(response.headers["Location"]).to eq("https://example.com/page?utm_source=existing&utm_medium=email")
   end
 
-  it "redirects randomizer links to a weighted pool destination" do
+  it "redirects randomizer links to a weighted pool destination and records pool attribution" do
     link.update!(
       link_type: "randomizer",
       pool_entries_attributes: [
@@ -86,13 +97,22 @@ RSpec.describe "Redirects", type: :request do
         { destination_url: "https://example.com/b", weight: 50, position: 1 }
       ]
     )
+    entry = link.pool_entries.first
 
-    allow_any_instance_of(Link).to receive(:pick_pool_entry).and_return(link.pool_entries.first)
+    allow_any_instance_of(Link).to receive(:resolve_redirect).and_return(
+      Link::ResolvedRedirect.new(url: entry.destination_url, pool_entry: entry)
+    )
 
     get "/#{link.short_code}", headers: { "HTTP_HOST" => short_link_host }
 
     expect(response).to have_http_status(:found)
     expect(response.headers["Location"]).to eq(
+      "https://example.com/a?utm_source=newsletter&utm_medium=email"
+    )
+
+    event = link.click_events.last
+    expect(event.pool_entry_id).to eq(entry.id)
+    expect(event.destination_url).to eq(
       "https://example.com/a?utm_source=newsletter&utm_medium=email"
     )
   end

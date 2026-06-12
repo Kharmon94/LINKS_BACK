@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_12_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_12_150000) do
   create_table "billing_events", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "stripe_event_id"
@@ -49,9 +49,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_12_140000) do
     t.string "ip_hash"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "pool_entry_id"
+    t.string "destination_url"
     t.index ["clicked_at"], name: "index_click_events_on_clicked_at"
     t.index ["link_id", "clicked_at"], name: "index_click_events_on_link_id_and_clicked_at"
     t.index ["link_id"], name: "index_click_events_on_link_id"
+    t.index ["pool_entry_id"], name: "index_click_events_on_pool_entry_id"
   end
 
   create_table "custom_domains", force: :cascade do |t|
@@ -220,6 +223,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_12_140000) do
 
   add_foreign_key "billing_events", "users"
   add_foreign_key "campaigns", "users"
+  add_foreign_key "click_events", "link_pool_entries", column: "pool_entry_id"
   add_foreign_key "click_events", "links"
   add_foreign_key "custom_domains", "users"
   add_foreign_key "link_pool_entries", "links"
