@@ -4,6 +4,7 @@ module Permissions
   # Single source of truth for authorization rules shared by Ability and Presenter.
   class Rules
     BILLING_ROLES = %w[owner].freeze
+    CAMPAIGN_MANAGER_ROLES = %w[owner admin].freeze
 
     attr_reader :user
 
@@ -15,8 +16,8 @@ module Permissions
       return if user.nil?
 
       apply_solo_user_rules(ability)
+      apply_collaboration_rules(ability)
       apply_platform_admin_rules(ability) if user.admin?
-      AbilityTeamRoles.apply_stubs(ability, user)
     end
 
     def platform_admin?
@@ -47,7 +48,7 @@ module Permissions
         team: team_permissions,
         workspaces: workspace_permissions,
         settings: settings_permissions,
-        analytics: { read: true },
+        analytics: { read: analytics_allowed? },
         admin: admin_permissions
       }
     end
@@ -82,7 +83,7 @@ module Permissions
 
     def campaign_permissions
       enabled = feature_enabled?(:campaigns)
-      can_manage = enabled && user.team_role.in?(%w[owner admin])
+      can_manage = enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
       {
         read: enabled,
         create: can_manage && !user.at_campaign_limit?,
@@ -95,7 +96,7 @@ module Permissions
       enabled = feature_enabled?(:workspaces)
       {
         read: enabled,
-        invite: enabled && user.team_role.in?(%w[owner admin]),
+        invite: enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES),
         manage: enabled && user.team_role == "owner"
       }
     end
@@ -104,8 +105,8 @@ module Permissions
       enabled = feature_enabled?(:workspaces)
       {
         read: enabled,
-        create: enabled && user.team_role.in?(%w[owner admin]),
-        update: enabled && user.team_role.in?(%w[owner admin]),
+        create: enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES),
+        update: enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES),
         destroy: enabled && user.team_role == "owner"
       }
     end
@@ -113,15 +114,21 @@ module Permissions
     def settings_permissions
       {
         billing: billing_allowed?,
-        domains: CustomDomain.allowed_for?(user) && user.team_role.in?(%w[owner admin])
+        domains: CustomDomain.allowed_for?(user) && user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
       }
     end
 
     def admin_permissions
+      return { users: false, links: false } unless platform_admin?
+
       {
-        users: platform_admin?,
-        links: platform_admin?
+        users: true,
+        links: true
       }
+    end
+
+    def analytics_allowed?
+      true
     end
 
     def apply_solo_user_rules(ability)
@@ -130,8 +137,10 @@ module Permissions
         ability.can :create, Link unless user.at_link_limit?
       end
 
-      ability.can :create, WebPushSubscription, user_id: user.id
-      ability.can :destroy, WebPushSubscription, user_id: user.id
+      if feature_enabled?(:web_push)
+        ability.can :create, WebPushSubscription, user_id: user.id
+        ability.can :destroy, WebPushSubscription, user_id: user.id
+      end
 
       ability.can %i[show update], User, id: user.id
 
@@ -139,6 +148,84 @@ module Permissions
       ability.can :create, :portal if portal_allowed?
 
       ability.can :read, Plan
+    end
+
+    def apply_collaboration_rules(ability)
+      apply_workspace_rules(ability)
+      apply_campaign_rules(ability)
+      apply_team_rules(ability)
+      apply_custom_domain_rules(ability)
+      apply_analytics_rules(ability)
+    end
+
+    def apply_workspace_rules(ability)
+      return unless feature_enabled?(:workspaces)
+
+      workspace_ids = user.accessible_workspaces.pluck(:id)
+      return if workspace_ids.empty?
+
+      ability.can %i[read update destroy], Link, workspace_id: workspace_ids
+      ability.can :create, Link, workspace_id: workspace_ids unless user.at_link_limit?
+
+      ability.can :read, Workspace, id: workspace_ids
+
+      managed_team_ids = user.team_memberships.where(role: CAMPAIGN_MANAGER_ROLES).pluck(:team_id)
+      owner_team_ids = user.team_memberships.where(role: "owner").pluck(:team_id)
+      member_team_ids = user.team_memberships.pluck(:team_id)
+
+      ability.can %i[create update], Workspace, team_id: managed_team_ids if managed_team_ids.any?
+      ability.can :destroy, Workspace, team_id: owner_team_ids if owner_team_ids.any?
+
+      ability.can :read, TeamMembership, team_id: member_team_ids if member_team_ids.any?
+      ability.can :update, TeamMembership, team_id: owner_team_ids if owner_team_ids.any?
+      ability.can :destroy, TeamMembership, team_id: managed_team_ids if managed_team_ids.any?
+
+      ability.can :read, TeamInvitation, team_id: member_team_ids if member_team_ids.any?
+      ability.can :create, TeamInvitation, team_id: managed_team_ids if managed_team_ids.any?
+    end
+
+    def apply_campaign_rules(ability)
+      return unless feature_enabled?(:campaigns)
+
+      if feature_enabled?(:workspaces)
+        workspace_ids = user.accessible_workspaces.pluck(:id)
+        return if workspace_ids.empty?
+
+        ability.can :read, Campaign, workspace_id: workspace_ids
+        ability.can :assign_links, Campaign, workspace_id: workspace_ids
+        ability.can :unassign_links, Campaign, workspace_id: workspace_ids
+
+        return unless user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
+
+        ability.can %i[update destroy], Campaign, workspace_id: workspace_ids
+        ability.can :create, Campaign, workspace_id: workspace_ids unless user.at_campaign_limit?
+      else
+        ability.can :read, Campaign, user_id: user.id
+        ability.can :assign_links, Campaign, user_id: user.id
+        ability.can :unassign_links, Campaign, user_id: user.id
+
+        return unless user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
+
+        ability.can %i[update destroy], Campaign, user_id: user.id
+        ability.can :create, Campaign unless user.at_campaign_limit?
+      end
+    end
+
+    def apply_team_rules(ability)
+      return unless feature_enabled?(:workspaces)
+
+      ability.can :read, :team if user.primary_team.present?
+      ability.can :accept, TeamInvitation
+    end
+
+    def apply_custom_domain_rules(ability)
+      return unless CustomDomain.allowed_for?(user)
+
+      ability.can %i[create update destroy], CustomDomain, user_id: user.id
+    end
+
+    def apply_analytics_rules(ability)
+      ability.can :read, :analytics if analytics_allowed?
     end
 
     def apply_platform_admin_rules(ability)

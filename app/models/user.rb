@@ -113,9 +113,7 @@ class User < ApplicationRecord
   end
 
   def accessible_workspaces
-    return Workspace.none unless primary_team
-
-    workspaces.joins(:team).where(teams: { id: primary_team.id }).distinct
+    workspaces.distinct
   end
 
   def at_campaign_limit?
