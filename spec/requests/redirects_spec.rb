@@ -39,8 +39,15 @@ RSpec.describe "Redirects", type: :request do
   end
 
   it "returns 404 for unknown short code" do
-    get "/abcd12"
+    get "/abcd12", headers: { "HTTP_HOST" => short_link_host }
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "redirects on the API host (not only SHORT_LINK_HOST)" do
+    get "/#{link.short_code}", headers: { "HTTP_HOST" => "links-api-production.up.railway.app" }
+
+    expect(response).to have_http_status(:found)
+    expect(response.headers["Location"]).to include("example.com/landing")
   end
 
   it "records click event and increments clicks_count" do

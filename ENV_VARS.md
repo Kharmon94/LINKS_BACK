@@ -16,7 +16,19 @@
 | `STRIPE_*` | Billing | See [STRIPE_SETUP.md](STRIPE_SETUP.md) |
 | `CRON_SECRET` | Cron endpoints | Bearer or `?secret=` |
 | `AWS_*` | S3 uploads | When all set, Active Storage uses `:amazon` |
-| `SHORT_LINK_HOST` | Optional | Host prefix in link JSON (no scheme) |
+| `SHORT_LINK_HOST` | Optional | Host shown in link JSON (no scheme), e.g. `links.blackcollar.io` |
+| `REDIRECT_ALLOWED_HOSTS` | Optional | Comma-separated extra hosts allowed for redirects (usually unnecessary after host-relaxation) |
+
+### Short link routing (production)
+
+Short URLs must hit **Rails** `GET /:short_code` (`RedirectsController`), not the React SPA.
+
+| Setup | What to do |
+|-------|------------|
+| **Recommended** | Point `SHORT_LINK_HOST` (e.g. `links.blackcollar.io`) at the **API** Railway service. Serve the dashboard SPA on a separate host (e.g. `app.blackcollar.io`). |
+| **Shared host** | If `links.blackcollar.io` serves the **frontend**, set `VITE_API_URL` to your API URL at frontend build time. The SPA forwards `/:short_code` to the API before redirecting to the destination. |
+
+Ensure `VITE_API_URL` on the frontend build matches the live API (with `https://`, no trailing slash).
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push | Web Push VAPID keys |
 | `VAPID_SUBJECT` | Push | Contact for push service, e.g. `mailto:support@...` |
 
