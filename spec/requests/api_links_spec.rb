@@ -111,6 +111,45 @@ RSpec.describe "API Links", type: :request do
       expect(response).to have_http_status(:created)
       expect(Link.last.workspace_id).to eq(workspace.id)
     end
+
+    it "lists only links in the active workspace" do
+      active = user.active_workspace
+      other = user.primary_team.workspaces.create!(name: "Other Workspace")
+      other.workspace_memberships.find_or_create_by!(user: user)
+
+      in_active = user.links.create!(
+        destination_url: "https://active.example.com",
+        name: "Active WS Link",
+        workspace: active
+      )
+      user.links.create!(
+        destination_url: "https://other.example.com",
+        name: "Other WS Link",
+        workspace: other
+      )
+
+      get "/api/v1/links", headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:ok)
+      ids = response.parsed_body["links"].map { |row| row["id"] }
+      expect(ids).to eq([in_active.id.to_s])
+      expect(response.parsed_body["meta"]["total"]).to eq(1)
+    end
+
+    it "changes listed links when active workspace changes" do
+      active = user.active_workspace
+      other = user.primary_team.workspaces.create!(name: "Switch WS")
+      other.workspace_memberships.find_or_create_by!(user: user)
+
+      user.links.create!(destination_url: "https://a.com", name: "A", workspace: active)
+      other_link = user.links.create!(destination_url: "https://b.com", name: "B", workspace: other)
+
+      user.update!(active_workspace: other)
+      get "/api/v1/links", headers: { "Authorization" => "Bearer #{token}" }
+
+      ids = response.parsed_body["links"].map { |row| row["id"] }
+      expect(ids).to eq([other_link.id.to_s])
+    end
   end
 
   describe "GET /api/v1/links" do

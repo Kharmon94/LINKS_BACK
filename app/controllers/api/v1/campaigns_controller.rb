@@ -56,7 +56,7 @@ module Api
       def assign_links
         authorize! :assign_links, @campaign
         link_ids = Array(params[:link_ids]).map(&:to_s)
-        links = current_user.links.where(id: link_ids)
+        links = scoped_links.where(id: link_ids)
         links.update_all(campaign_id: @campaign.id)
         render json: { campaign: @campaign.reload.as_json_for_client(include_links: true) }
       end

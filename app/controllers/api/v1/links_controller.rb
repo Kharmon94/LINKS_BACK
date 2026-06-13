@@ -3,7 +3,8 @@
 module Api
   module V1
     class LinksController < BaseController
-      load_and_authorize_resource through: :current_user, only: %i[show update destroy]
+      include WorkspaceScoping
+
       before_action :set_user_links, only: [:index]
       before_action :set_link, only: %i[show update destroy clicks]
 
@@ -30,6 +31,7 @@ module Api
       end
 
       def show
+        authorize! :show, @link
         render json: { link: @link.as_json_for_client }
       end
 
@@ -57,6 +59,7 @@ module Api
       end
 
       def update
+        authorize! :update, @link
         if randomizer_requested? && !FeatureFlag.enabled?(:randomizer)
           return render json: { error: "Randomizer feature is not enabled" }, status: :forbidden
         end
@@ -72,6 +75,7 @@ module Api
       end
 
       def destroy
+        authorize! :destroy, @link
         @link.destroy!
         head :no_content
       end
@@ -109,11 +113,11 @@ module Api
       end
 
       def set_user_links
-        @links = current_user.links
+        @links = scoped_links
       end
 
       def set_link
-        @link = current_user.links.find(params[:id])
+        @link = scoped_links.find(params[:id])
       end
 
       def randomizer_requested?
