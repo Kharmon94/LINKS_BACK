@@ -12,7 +12,7 @@ class UserMailer < ApplicationMailer
   def link_created(user, link)
     @user = user
     @link = link
-    @short_url = "#{ENV.fetch('SHORT_LINK_HOST', 'links.blackcollar.io')}/#{link.short_code}"
+    @short_url = "https://#{link.short_link_host}/#{link.short_code}"
     mail to: user.email, subject: "Your link is ready!"
   end
 

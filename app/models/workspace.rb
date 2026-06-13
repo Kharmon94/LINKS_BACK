@@ -13,7 +13,7 @@ class Workspace < ApplicationRecord
   end
 
   def campaigns_count
-    0
+    Campaign.where(workspace_id: id).count
   end
 
   def total_clicks

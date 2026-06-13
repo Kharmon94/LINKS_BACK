@@ -374,6 +374,65 @@ RSpec.describe "API Links", type: :request do
       expect(body["shortUrl"]).not_to include("links.example.com")
     end
 
+    it "denies team members from assigning custom_domain_id on create" do
+      member = User.create!(
+        email: "links-member@example.com",
+        password: "password123",
+        name: "Links Member",
+        subscription_tier: "growth",
+        role: "member"
+      )
+      member.team_memberships.destroy_all
+      member.teams.where(personal: true).find_each(&:destroy!)
+      team = growth_user.primary_team
+      team.team_memberships.create!(user: member, role: "member")
+      team.workspaces.find_each { |workspace| workspace.workspace_memberships.find_or_create_by!(user: member) }
+
+      post "/api/v1/links",
+           params: {
+             link: {
+               destination_url: "https://example.com/member-branded",
+               name: "Member Branded",
+               custom_domain_id: verified_domain.id
+             }
+           },
+           headers: { "Authorization" => "Bearer #{JwtService.encode(member)}" },
+           as: :json
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body["error"]).to include("Only team owners and admins")
+    end
+
+    it "denies team members from assigning custom_domain_id on update" do
+      member = User.create!(
+        email: "links-member-update@example.com",
+        password: "password123",
+        name: "Links Member Update",
+        subscription_tier: "growth",
+        role: "member"
+      )
+      member.team_memberships.destroy_all
+      member.teams.where(personal: true).find_each(&:destroy!)
+      team = growth_user.primary_team
+      team.team_memberships.create!(user: member, role: "member")
+      team.workspaces.find_each { |workspace| workspace.workspace_memberships.find_or_create_by!(user: member) }
+
+      platform_link = member.links.create!(
+        destination_url: "https://example.com/member-update",
+        name: "Member Update",
+        short_code: "membr1"
+      )
+
+      patch "/api/v1/links/#{platform_link.id}",
+            params: { link: { custom_domain_id: verified_domain.id } },
+            headers: { "Authorization" => "Bearer #{JwtService.encode(member)}" },
+            as: :json
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.parsed_body["error"]).to include("Only team owners and admins")
+      expect(platform_link.reload.custom_domain_id).to be_nil
+    end
+
     it "updates randomizer custom domain without breaking pool" do
       randomizer = growth_user.links.create!(
         link_type: "randomizer",

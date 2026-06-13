@@ -46,7 +46,8 @@ module Api
         end
 
         @link = current_user.links.build(link_params)
-        assign_workspace_and_domain!(@link)
+        return unless assign_workspace_and_domain!(@link)
+
         authorize! :create, @link
         if @link.save
           render json: { link: @link.as_json_for_client }, status: :created
@@ -61,7 +62,8 @@ module Api
         end
 
         @link.assign_attributes(link_params)
-        assign_workspace_and_domain!(@link)
+        return unless assign_workspace_and_domain!(@link)
+
         if @link.save
           render json: { link: @link.as_json_for_client }
         else
@@ -124,7 +126,17 @@ module Api
 
         billing_account = current_user.billing_account
 
-        return unless custom_domain_id_param_present?
+        return true unless custom_domain_id_param_present?
+
+        unless CustomDomain.allowed_for?(current_user)
+          render json: { error: "Custom domains are not available on your plan" }, status: :forbidden
+          return false
+        end
+
+        unless Permissions::Rules::CAMPAIGN_MANAGER_ROLES.include?(current_user.team_role)
+          render json: { error: "Only team owners and admins can assign custom domains" }, status: :forbidden
+          return false
+        end
 
         if link.custom_domain_id.present?
           domain = resolve_custom_domain_for_link(billing_account, link.custom_domain_id)
@@ -132,6 +144,8 @@ module Api
         else
           link.custom_domain_id = nil
         end
+
+        true
       end
 
       def custom_domain_id_param_present?

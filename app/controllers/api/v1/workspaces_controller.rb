@@ -46,6 +46,10 @@ module Api
 
       def destroy
         authorize! :destroy, @workspace
+        if @workspace.team.workspaces.count <= 1
+          return render json: { error: "Cannot delete the team's last workspace" }, status: :unprocessable_entity
+        end
+
         if @workspace.id == current_user.active_workspace_id
           fallback = current_user.accessible_workspaces.where.not(id: @workspace.id).first
           current_user.update!(active_workspace: fallback)

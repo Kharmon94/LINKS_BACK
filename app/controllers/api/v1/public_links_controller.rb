@@ -43,10 +43,9 @@ module Api
 
         user.reload
         link = user.links.order(created_at: :desc).first
-        host = ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io")
 
         render json: {
-          short_url: "#{host}/#{link.short_code}",
+          short_url: "https://#{link.short_link_host}/#{link.short_code}",
           short_code: link.short_code,
           user: user.as_json_for_client,
           token: JwtService.encode(user)
