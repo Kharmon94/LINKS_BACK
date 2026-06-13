@@ -38,9 +38,12 @@ RSpec.describe "Redirects", type: :request do
     )
   end
 
-  it "returns 404 for unknown short code" do
+  it "returns friendly HTML 404 for unknown short code" do
     get "/abcd12", headers: { "HTTP_HOST" => short_link_host }
     expect(response).to have_http_status(:not_found)
+    expect(response.media_type).to eq("text/html")
+    expect(response.body).to include("Link not found")
+    expect(response.body).to include(short_link_host)
   end
 
   it "redirects reserved app paths to the frontend SPA" do
@@ -65,6 +68,22 @@ RSpec.describe "Redirects", type: :request do
     else
       ENV["API_HOST"] = original_api_host
     end
+  end
+
+  it "records click using client IP from X-Forwarded-For behind a trusted proxy" do
+    client_ip = "203.0.113.99"
+    direct_ip = "203.0.113.50"
+
+    get "/#{link.short_code}", headers: {
+      "HTTP_HOST" => short_link_host,
+      "REMOTE_ADDR" => "10.0.0.5",
+      "HTTP_X_FORWARDED_FOR" => client_ip,
+      "HTTP_USER_AGENT" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
+    event = link.click_events.last
+    expect(event.ip_hash).to eq(Digest::SHA256.hexdigest(client_ip)[0, 16])
+    expect(event.ip_hash).not_to eq(Digest::SHA256.hexdigest(direct_ip)[0, 16])
   end
 
   it "records click event and increments clicks_count" do

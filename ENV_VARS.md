@@ -39,14 +39,33 @@ Run `bundle exec rake analytics:reconcile_clicks` once after deploy if `links.cl
 
 ### Short link routing (production)
 
-Short URLs must hit **Rails** `GET /:short_code` (`RedirectsController`), not the React SPA.
+Short URLs must reach **Rails** `GET /:short_code` (`RedirectsController`), not the React SPA alone.
 
 | Setup | What to do |
 |-------|------------|
 | **Recommended** | Point `SHORT_LINK_HOST` (e.g. `links.blackcollar.io`) at the **API** Railway service. Serve the dashboard SPA on a separate host (e.g. `app.blackcollar.io`). |
-| **Shared host** | If `links.blackcollar.io` serves the **frontend**, set `VITE_API_URL` to your API URL at frontend build time. A lightweight inline script in `index.html` forwards `/:short_code` to the API **before** React loads (no 1MB bundle wait). |
+| **Shared host (current)** | `links.blackcollar.io` runs a small **Node proxy** (`server.mjs`) on the frontend Railway service. It matches `GET`/`HEAD /:shortCode`, server-side `fetch`es the API, and forwards `302` + `Location` to the browser. The visitor never navigates to `api.blackcollar.io`. All other paths serve the SPA build. |
+
+**Frontend service env (server-only, not `VITE_*`):**
+
+| Variable | Notes |
+|----------|--------|
+| `API_URL` | API origin for the short-link proxy, e.g. `https://api.blackcollar.io` (no trailing slash). |
+| `PORT` | Set by Railway; the proxy listens here. |
+
+The proxy forwards `X-Forwarded-For`, `User-Agent`, and `Referer` from the browser to the API so redirect click analytics use the visitor IP. The API trusts Railway/private proxy ranges in production (`config.action_dispatch.trusted_proxies`).
+
+`VITE_API_URL` remains required at **frontend build time** for SPA calls to `/api/v1/...`; only the short-link path uses `API_URL` at runtime.
 
 Ensure `VITE_API_URL` on the frontend build matches the live API (with `https://`, no trailing slash).
+
+**Data repair (one-time after deploy):** if links were created before the customize fix and have `custom_domain_id` set incorrectly, run on the API service:
+
+```bash
+bundle exec rake links:repair_platform_short_urls          # dry-run report
+bundle exec rake links:repair_platform_short_urls DRY_RUN=false
+bundle exec rake links:repair_platform_short_urls LINK_IDS=4 DRY_RUN=false  # single link
+```
 
 ### Custom domains (API-direct routing)
 

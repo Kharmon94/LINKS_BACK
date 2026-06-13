@@ -7,11 +7,11 @@ class RedirectsController < ApplicationController
     end
 
     link = find_link_for_request
-    return head :not_found unless link
+    return render_short_link_not_found unless link
 
     resolved = link.resolve_redirect
     destination = link.merged_destination_url(resolved.url)
-    return head :not_found if destination.blank?
+    return render_short_link_not_found if destination.blank?
 
     enqueue_click_record(link, resolved, destination)
     redirect_to destination, allow_other_host: true, status: :found
@@ -90,5 +90,42 @@ class RedirectsController < ApplicationController
     return head :not_found if origin.blank?
 
     redirect_to "#{origin}#{request.path}", allow_other_host: true, status: :found
+  end
+
+  def render_short_link_not_found
+    self.status = :not_found
+    self.content_type = "text/html; charset=utf-8"
+    self.response_body = short_link_not_found_html
+  end
+
+  def short_link_not_found_html
+    platform_host = ERB::Util.html_escape(ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io"))
+    <<~HTML
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Link not found</title>
+          <style>
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fafafa; }
+            main { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+            .card { max-width: 28rem; width: 100%; }
+            h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem; }
+            p { color: #a3a3a3; margin: 0 0 1.5rem; line-height: 1.5; }
+            a { color: #fafafa; }
+          </style>
+        </head>
+        <body>
+          <main>
+            <div class="card">
+              <h1>Link not found</h1>
+              <p>This short link does not exist or is no longer available.</p>
+              <p><a href="https://#{platform_host}/">Go to #{platform_host}</a></p>
+            </div>
+          </main>
+        </body>
+      </html>
+    HTML
   end
 end
