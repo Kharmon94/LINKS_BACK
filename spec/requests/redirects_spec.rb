@@ -172,10 +172,19 @@ RSpec.describe "Redirects", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "returns 404 for custom link on platform host" do
+    it "returns 404 for non-default custom link on platform host" do
       get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
 
       expect(response).to have_http_status(:not_found)
+    end
+
+    it "redirects default custom domain link on platform host" do
+      custom_domain.update!(is_default: true)
+
+      get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
+
+      expect(response).to have_http_status(:found)
+      expect(response.headers["Location"]).to include("example.com/custom")
     end
 
     it "returns 404 on pending custom host without platform fallback" do

@@ -276,6 +276,25 @@ RSpec.describe "API Links", type: :request do
       expect(body["customDomainId"]).to eq(verified_domain.id.to_s)
     end
 
+    it "does not auto-assign default custom domain when param is omitted" do
+      verified_domain.update!(is_default: true)
+
+      post "/api/v1/links",
+           params: {
+             link: {
+               destination_url: "https://example.com/platform",
+               name: "Platform Link"
+             }
+           },
+           headers: { "Authorization" => "Bearer #{growth_token}" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body["link"]
+      expect(body["customDomainId"]).to be_nil
+      expect(body["shortUrl"]).to include(ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io"))
+    end
+
     it "creates randomizer with custom domain" do
       post "/api/v1/links",
            params: {

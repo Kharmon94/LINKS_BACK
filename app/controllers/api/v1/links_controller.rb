@@ -124,16 +124,13 @@ module Api
 
         billing_account = current_user.billing_account
 
-        if custom_domain_id_param_present?
-          if link.custom_domain_id.present?
-            domain = resolve_custom_domain_for_link(billing_account, link.custom_domain_id)
-            link.custom_domain_id = domain&.id
-          else
-            link.custom_domain_id = nil
-          end
-        elsif link.new_record?
-          default_domain = billing_account.custom_domains.verified.find_by(is_default: true)
-          link.custom_domain_id = default_domain&.id
+        return unless custom_domain_id_param_present?
+
+        if link.custom_domain_id.present?
+          domain = resolve_custom_domain_for_link(billing_account, link.custom_domain_id)
+          link.custom_domain_id = domain&.id
+        else
+          link.custom_domain_id = nil
         end
       end
 
