@@ -93,6 +93,26 @@ RSpec.describe "API Links", type: :request do
     end
   end
 
+  describe "with workspaces enabled" do
+    before do
+      FeatureFlag.find_by(key: "workspaces").update!(enabled: true)
+    end
+
+    it "creates a link scoped to the active workspace" do
+      workspace = user.active_workspace
+
+      expect do
+        post "/api/v1/links",
+             params: { link: { destination_url: "https://example.com/ws", name: "Workspace Link" } },
+             headers: { "Authorization" => "Bearer #{token}" },
+             as: :json
+      end.to change(Link, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(Link.last.workspace_id).to eq(workspace.id)
+    end
+  end
+
   describe "GET /api/v1/links" do
     let!(:randomizer_link) do
       user.links.create!(

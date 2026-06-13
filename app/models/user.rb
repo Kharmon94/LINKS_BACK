@@ -116,6 +116,20 @@ class User < ApplicationRecord
     workspaces.distinct
   end
 
+  def assign_default_workspace!(record, workspace_id: nil)
+    return unless FeatureFlag.enabled?(:workspaces)
+    return unless record.respond_to?(:workspace=)
+
+    workspace = if workspace_id.present?
+                  accessible_workspaces.find_by(id: workspace_id)
+                elsif record.workspace_id.present?
+                  accessible_workspaces.find_by(id: record.workspace_id)
+                else
+                  active_workspace || accessible_workspaces.first
+                end
+    record.workspace = workspace if workspace
+  end
+
   def at_campaign_limit?
     limit = TIER_LIMITS[subscription_tier][:max_campaigns]
     return false if limit == Float::INFINITY

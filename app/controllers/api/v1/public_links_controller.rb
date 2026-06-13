@@ -33,7 +33,9 @@ module Api
 
         ActiveRecord::Base.transaction do
           user.save!
-          link = user.links.create!(destination_url: url, name: name)
+          link = user.links.build(destination_url: url, name: name)
+          user.assign_default_workspace!(link)
+          link.save!
           user.assign_magic_link!
           UserMailer.link_created(user, link).deliver_later
           UserMailer.magic_link(user).deliver_later

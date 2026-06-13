@@ -3,7 +3,7 @@
 module Api
   module V1
     class LinksController < BaseController
-      load_and_authorize_resource through: :current_user, only: %i[show create update destroy]
+      load_and_authorize_resource through: :current_user, only: %i[show update destroy]
       before_action :set_user_links, only: [:index]
       before_action :set_link, only: %i[show update destroy clicks]
 
@@ -47,6 +47,7 @@ module Api
 
         @link = current_user.links.build(link_params)
         assign_workspace_and_domain!(@link)
+        authorize! :create, @link
         if @link.save
           render json: { link: @link.as_json_for_client }, status: :created
         else
@@ -119,14 +120,7 @@ module Api
       end
 
       def assign_workspace_and_domain!(link)
-        if FeatureFlag.enabled?(:workspaces)
-          workspace = if link.workspace_id.present?
-                        current_user.accessible_workspaces.find_by(id: link.workspace_id)
-                      else
-                        current_user.active_workspace || current_user.accessible_workspaces.first
-                      end
-          link.workspace = workspace if workspace
-        end
+        current_user.assign_default_workspace!(link)
 
         billing_account = current_user.billing_account
 

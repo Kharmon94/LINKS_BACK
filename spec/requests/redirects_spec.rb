@@ -43,6 +43,13 @@ RSpec.describe "Redirects", type: :request do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "redirects reserved app paths to the frontend SPA" do
+    get "/analytics", headers: { "HTTP_HOST" => short_link_host }
+
+    expect(response).to have_http_status(:found)
+    expect(response.headers["Location"]).to end_with("/analytics")
+  end
+
   it "redirects on the API host (not only SHORT_LINK_HOST)" do
     api_host = "links-api-production.up.railway.app"
     original_api_host = ENV["API_HOST"]

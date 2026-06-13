@@ -28,7 +28,7 @@ module Api
         end
 
         @campaign = current_user.campaigns.build(campaign_params)
-        assign_workspace!(@campaign)
+        current_user.assign_default_workspace!(@campaign)
         authorize! :create, @campaign
 
         if @campaign.save
@@ -85,12 +85,6 @@ module Api
         p.permit(:name, :description)
       end
 
-      def assign_workspace!(campaign)
-        return unless FeatureFlag.enabled?(:workspaces)
-
-        workspace = current_user.active_workspace || current_user.accessible_workspaces.first
-        campaign.workspace = workspace if workspace
-      end
     end
   end
 end

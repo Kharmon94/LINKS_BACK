@@ -2,6 +2,10 @@
 
 class RedirectsController < ApplicationController
   def show
+    if ReservedShortLinkSlugs.include?(params[:short_code])
+      return redirect_to_frontend_app_route
+    end
+
     link = find_link_for_request
     return head :not_found unless link
 
@@ -59,5 +63,12 @@ class RedirectsController < ApplicationController
 
   def async_click_recording?
     ENV["REDIRECT_ASYNC_CLICKS"] == "true"
+  end
+
+  def redirect_to_frontend_app_route
+    origin = frontend_origin
+    return head :not_found if origin.blank?
+
+    redirect_to "#{origin}#{request.path}", allow_other_host: true, status: :found
   end
 end
