@@ -9,21 +9,21 @@ module Api
 
       def overview
         data = Analytics::Aggregator.new(scoped_links).overview_for(current_user)
-        render json: { analytics: data }
+        render json: { analytics: data, generatedAt: Time.current.iso8601 }
       end
 
       def link_analytics
         link = scoped_links.find(link_id_param)
         authorize! :show, link
         data = Analytics::Aggregator.new(link).link_analytics(link)
-        render json: { analytics: data }
+        render json: { analytics: data, generatedAt: Time.current.iso8601 }
       end
 
       def campaign_analytics
         campaign = scoped_campaigns.find(campaign_id_param)
         authorize! :read, campaign
         data = Analytics::Aggregator.new(campaign).campaign_analytics(campaign)
-        render json: { analytics: data }
+        render json: { analytics: data, generatedAt: Time.current.iso8601 }
       end
 
       private

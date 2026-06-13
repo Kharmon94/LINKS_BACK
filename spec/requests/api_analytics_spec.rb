@@ -32,6 +32,7 @@ RSpec.describe "API Analytics", type: :request do
   it "returns overview analytics with charts" do
     get "/api/v1/analytics/overview", headers: auth_headers(user)
     expect(response).to have_http_status(:ok)
+    expect(response.parsed_body["generatedAt"]).to be_present
     body = response.parsed_body["analytics"]
     expect(body["totalClicks"]).to eq(1)
     expect(body["totalLinks"]).to eq(1)
@@ -47,6 +48,7 @@ RSpec.describe "API Analytics", type: :request do
   it "returns link analytics with recentClicks and referrerBreakdown" do
     get "/api/v1/links/#{link.id}/analytics", headers: auth_headers(user)
     expect(response).to have_http_status(:ok)
+    expect(response.parsed_body["generatedAt"]).to be_present
     body = response.parsed_body["analytics"]
     expect(body["totalClicks"]).to eq(1)
     expect(body["quickStats"]).to include("last7Days", "allTime", "peakDay", "countries")
@@ -59,6 +61,7 @@ RSpec.describe "API Analytics", type: :request do
   it "returns campaign analytics with referrerBreakdown" do
     get "/api/v1/campaigns/#{campaign.id}/analytics", headers: auth_headers(user)
     expect(response).to have_http_status(:ok)
+    expect(response.parsed_body["generatedAt"]).to be_present
     body = response.parsed_body["analytics"]
     expect(body["totalClicks"]).to eq(1)
     expect(body["recentClicks"]).to be_present

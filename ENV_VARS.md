@@ -19,7 +19,7 @@
 | `SHORT_LINK_HOST` | Optional | Host shown in link JSON (no scheme), e.g. `links.blackcollar.io` |
 | `API_HOST` | Optional | API deployment host (e.g. `api.blackcollar.io`). No longer required for redirects: any host that is not a registered custom domain resolves platform short links. Still useful for documentation and future host-specific behavior. |
 | `VITE_CUSTOM_DOMAIN_CNAME_TARGET` | Frontend build | Shared DNS CNAME target shown in Settings → Domains Step 2b (defaults from `VITE_API_URL` host). |
-| `REDIRECT_ASYNC_CLICKS` | Optional | Set to `true` to record clicks in a background job so the 302 returns sooner. Requires Solid Queue (`SOLID_QUEUE_IN_PUMA=true`) or clicks may not persist. |
+| `REDIRECT_ASYNC_CLICKS` | Optional | Set to `true` to record clicks in a background job so the 302 returns sooner. Requires Solid Queue (`SOLID_QUEUE_IN_PUMA=true`) or clicks may not persist. For realtime analytics dashboards (5–10s frontend polling), keep sync click recording (default). Async clicks add queue delay before `click_events` and `clicks_count` update. |
 | `SOLID_QUEUE_IN_PUMA` | Optional | Run `true` on single-server Railway deploys so background jobs (e.g. async click recording) process. |
 | `GEOIP_DB_PATH` | Optional | Path to MaxMind **GeoLite2-City** `.mmdb` for click geo fallback (see below) |
 | `REDIRECT_ALLOWED_HOSTS` | Optional | Comma-separated extra hosts allowed for redirects (usually unnecessary after host-relaxation) |
