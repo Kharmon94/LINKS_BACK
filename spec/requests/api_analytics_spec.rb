@@ -40,6 +40,8 @@ RSpec.describe "API Analytics", type: :request do
     expect(body["topLinks"]).to be_present
     expect(body["clicksOverTime"]).to include("7D", "30D")
     expect(body["deviceBreakdown"]).to be_present
+    expect(body["recentClicks"].length).to eq(1)
+    expect(body["recentClicks"].first["shortUrl"]).to be_present
   end
 
   it "returns link analytics with recentClicks and referrerBreakdown" do

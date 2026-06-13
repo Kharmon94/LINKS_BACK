@@ -37,7 +37,8 @@ module Analytics
         topCampaigns: top_campaigns(campaigns, total_clicks),
         topWorkspaces: top_workspaces(links, total_clicks),
         clicksOverTime: clicks_over_time_by_period(events),
-        deviceBreakdown: device_breakdown(events)
+        deviceBreakdown: device_breakdown(events),
+        recentClicks: recent_clicks(events)
       }
       result
     end
