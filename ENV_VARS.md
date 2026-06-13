@@ -46,6 +46,11 @@ Short URLs must hit **Rails** `GET /:short_code` (`RedirectsController`), not th
 | **Shared host** | If `links.blackcollar.io` serves the **frontend**, set `VITE_API_URL` to your API URL at frontend build time. A lightweight inline script in `index.html` forwards `/:short_code` to the API **before** React loads (no 1MB bundle wait). |
 
 Ensure `VITE_API_URL` on the frontend build matches the live API (with `https://`, no trailing slash).
+
+### Feature flags (`db:seed`)
+
+`bundle exec rails db:seed` ensures feature flags exist. The **`campaigns`** flag is always set to **enabled** on seed (safe to re-run). If `/api/v1/campaigns` returns 403, run seed on the API service or enable campaigns in Admin → Feature Flags.
+
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push | Web Push VAPID keys |
 | `VAPID_SUBJECT` | Push | Contact for push service, e.g. `mailto:support@...` |
 

@@ -41,6 +41,8 @@ Permissions::Rules  →  Ability (CanCanCan)
 
 When a flag is disabled, related `permissions` booleans are `false` in client JSON and Ability rules are not applied.
 
+**Deploy:** `db:seed` idempotently enables the `campaigns` flag on every run. If campaigns nav/API return 403 in production, run `bundle exec rails db:seed` once or toggle **Admin → Feature Flags → campaigns**. Campaign **create** still requires Starter+ (`max_campaigns` on free tier is 0).
+
 ## Solo user matrix
 
 ### Links

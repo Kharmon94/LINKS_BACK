@@ -69,7 +69,7 @@ else
 end
 
 FEATURE_FLAG_DEFAULTS = [
-  { key: "campaigns", enabled: true, description: "Campaign management and grouping", category: "product" },
+  { key: "campaigns", enabled: true, always_enable: true, description: "Campaign management and grouping", category: "product" },
   { key: "randomizer", enabled: false, description: "Random destination link rotation", category: "product" },
   { key: "web_push", enabled: true, description: "Browser push notification subscriptions", category: "integrations" },
   { key: "workspaces", enabled: false, description: "Team workspaces and collaboration", category: "product" },
@@ -78,7 +78,11 @@ FEATURE_FLAG_DEFAULTS = [
 
 FEATURE_FLAG_DEFAULTS.each do |attrs|
   flag = FeatureFlag.find_or_initialize_by(key: attrs[:key])
-  flag.enabled = attrs[:enabled] if flag.new_record?
+  if attrs[:always_enable]
+    flag.enabled = true
+  elsif flag.new_record?
+    flag.enabled = attrs[:enabled]
+  end
   flag.description = attrs[:description]
   flag.category = attrs[:category]
   flag.save!
