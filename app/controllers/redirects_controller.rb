@@ -19,18 +19,17 @@ class RedirectsController < ApplicationController
     short_code = params[:short_code]
     host = request.host.to_s.downcase
 
-    unless skip_custom_domain_lookup?(host)
-      custom_domain = CustomDomain.verified.find_by(domain: host)
-      if custom_domain
-        link = Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: custom_domain.id)
-        return link if link
-      end
+    if platform_redirect_host?(host)
+      return Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: nil)
     end
 
-    Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: nil)
+    custom_domain = CustomDomain.verified.find_by(domain: host)
+    return nil unless custom_domain
+
+    Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: custom_domain.id)
   end
 
-  def skip_custom_domain_lookup?(host)
+  def platform_redirect_host?(host)
     default_host = ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io").to_s.downcase
     return true if host == default_host
 

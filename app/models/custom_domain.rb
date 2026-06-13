@@ -28,6 +28,11 @@ class CustomDomain < ApplicationRecord
   end
 
   def set_as_default!
+    unless verified?
+      errors.add(:base, "Domain must be verified before setting as default")
+      raise ActiveRecord::RecordInvalid, self
+    end
+
     transaction do
       user.custom_domains.where.not(id: id).update_all(is_default: false)
       update!(is_default: true)
@@ -48,7 +53,7 @@ class CustomDomain < ApplicationRecord
 
   def self.allowed_for?(user)
     FeatureFlag.enabled?(:custom_domains) &&
-      CUSTOM_DOMAIN_TIERS.include?(user.subscription_tier)
+      CUSTOM_DOMAIN_TIERS.include?(user.billing_account.subscription_tier)
   end
 
   private

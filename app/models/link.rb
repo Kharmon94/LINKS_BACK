@@ -15,11 +15,12 @@ class Link < ApplicationRecord
   accepts_nested_attributes_for :pool_entries, allow_destroy: true
 
   validates :destination_url, presence: true, if: :single?
-  validates :short_code, presence: true, uniqueness: true
+  validates :short_code, presence: true
   validates :link_type, inclusion: { in: LINK_TYPES }
   validate :destination_must_be_http_url, if: :single?
   validate :randomizer_requires_pool, if: :randomizer?
   validate :custom_short_code_format, if: -> { short_code.present? && short_code_changed? }
+  validate :short_code_uniqueness_scope
 
   before_validation :ensure_short_code, on: :create
   before_validation :sync_randomizer_destination
@@ -177,6 +178,20 @@ class Link < ApplicationRecord
     errors.add(:short_code, "may only contain letters, numbers, hyphens, and underscores")
   end
 
+  def short_code_uniqueness_scope
+    return if short_code.blank?
+
+    scope = Link.where(short_code: short_code)
+    scope = if custom_domain_id.nil?
+              scope.where(custom_domain_id: nil)
+            else
+              scope.where(custom_domain_id: custom_domain_id)
+            end
+    scope = scope.where.not(id: id) if persisted?
+
+    errors.add(:short_code, "has already been taken") if scope.exists?
+  end
+
   def ensure_short_code
     return if short_code.present?
 
@@ -193,7 +208,13 @@ class Link < ApplicationRecord
   def generate_unique_short_code
     loop do
       code = SecureRandom.alphanumeric(6).downcase
-      break code unless Link.exists?(short_code: code)
+      scope = Link.where(short_code: code)
+      scope = if custom_domain_id.nil?
+                scope.where(custom_domain_id: nil)
+              else
+                scope.where(custom_domain_id: custom_domain_id)
+              end
+      break code unless scope.exists?
     end
   end
 end

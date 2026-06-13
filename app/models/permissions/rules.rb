@@ -54,9 +54,11 @@ module Permissions
     end
 
     def limits_hash
-      tier_limits = User::TIER_LIMITS[user.subscription_tier] || User::TIER_LIMITS["free"]
+      account = user.billing_account
+      tier_limits = User::TIER_LIMITS[account.subscription_tier] || User::TIER_LIMITS["free"]
       max_links = tier_limits[:max_links]
       max_campaigns = tier_limits[:max_campaigns]
+      max_domains = tier_limits[:max_custom_domains]
 
       {
         links: {
@@ -66,6 +68,10 @@ module Permissions
         campaigns: {
           used: user.campaigns.count,
           max: max_campaigns == Float::INFINITY ? nil : max_campaigns
+        },
+        domains: {
+          used: account.custom_domains.count,
+          max: max_domains == Float::INFINITY ? nil : max_domains
         }
       }
     end
@@ -94,9 +100,11 @@ module Permissions
 
     def team_permissions
       enabled = feature_enabled?(:workspaces)
+      can_manage_members = enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
       {
         read: enabled,
-        invite: enabled && user.team_role.in?(CAMPAIGN_MANAGER_ROLES),
+        invite: can_manage_members,
+        removeMember: can_manage_members,
         manage: enabled && user.team_role == "owner"
       }
     end
@@ -220,8 +228,10 @@ module Permissions
 
     def apply_custom_domain_rules(ability)
       return unless CustomDomain.allowed_for?(user)
+      return unless user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
 
-      ability.can %i[create update destroy], CustomDomain, user_id: user.id
+      billing_id = user.billing_account.id
+      ability.can %i[create update destroy], CustomDomain, user_id: billing_id
     end
 
     def apply_analytics_rules(ability)

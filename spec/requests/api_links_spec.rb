@@ -207,4 +207,155 @@ RSpec.describe "API Links", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "custom domains on links" do
+    def flag!(key, enabled:)
+      FeatureFlag.find_by!(key: key).update!(enabled: enabled)
+    end
+
+    let(:growth_user) do
+      User.create!(
+        email: "growth@example.com",
+        password: "password123",
+        name: "Growth User",
+        subscription_tier: "growth",
+        role: "owner"
+      )
+    end
+
+    let(:growth_token) { JwtService.encode(growth_user) }
+
+    let!(:verified_domain) do
+      growth_user.custom_domains.create!(
+        domain: "links.example.com",
+        status: "verified",
+        verified_at: Time.current
+      )
+    end
+
+    before do
+      flag!("custom_domains", enabled: true)
+      flag!("randomizer", enabled: true)
+    end
+
+    it "creates single link with custom domain and returns custom shortUrl" do
+      post "/api/v1/links",
+           params: {
+             link: {
+               destination_url: "https://example.com/branded",
+               name: "Branded",
+               custom_domain_id: verified_domain.id
+             }
+           },
+           headers: { "Authorization" => "Bearer #{growth_token}" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body["link"]
+      expect(body["shortUrl"]).to start_with("links.example.com/")
+      expect(body["customDomainId"]).to eq(verified_domain.id.to_s)
+    end
+
+    it "creates randomizer with custom domain" do
+      post "/api/v1/links",
+           params: {
+             link: {
+               name: "Branded Randomizer",
+               link_type: "randomizer",
+               custom_domain_id: verified_domain.id,
+               pool_entries_attributes: [
+                 { destination_url: "https://example.com/a", weight: 50, position: 0 },
+                 { destination_url: "https://example.com/b", weight: 50, position: 1 }
+               ]
+             }
+           },
+           headers: { "Authorization" => "Bearer #{growth_token}" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body["link"]
+      expect(body["isRandomizer"]).to be(true)
+      expect(body["shortUrl"]).to start_with("links.example.com/")
+    end
+
+    it "ignores unverified custom_domain_id on create" do
+      pending_domain = growth_user.custom_domains.create!(domain: "pending-links.example.com")
+
+      post "/api/v1/links",
+           params: {
+             link: {
+               destination_url: "https://example.com/pending",
+               name: "Pending Domain",
+               custom_domain_id: pending_domain.id
+             }
+           },
+           headers: { "Authorization" => "Bearer #{growth_token}" },
+           as: :json
+
+      expect(response).to have_http_status(:created)
+      body = response.parsed_body["link"]
+      expect(body["customDomainId"]).to be_nil
+      expect(body["shortUrl"]).to include(ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io"))
+    end
+
+    it "updates link custom domain" do
+      platform_link = growth_user.links.create!(
+        destination_url: "https://example.com/x",
+        name: "Assign Domain",
+        short_code: "assign1"
+      )
+
+      patch "/api/v1/links/#{platform_link.id}",
+            params: { link: { custom_domain_id: verified_domain.id } },
+            headers: { "Authorization" => "Bearer #{growth_token}" },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["customDomainId"]).to eq(verified_domain.id.to_s)
+      expect(body["shortUrl"]).to eq("links.example.com/assign1")
+    end
+
+    it "clears custom domain on update" do
+      branded = growth_user.links.create!(
+        destination_url: "https://example.com/x",
+        name: "Switch",
+        short_code: "sw001",
+        custom_domain: verified_domain
+      )
+
+      patch "/api/v1/links/#{branded.id}",
+            params: { link: { custom_domain_id: nil } },
+            headers: { "Authorization" => "Bearer #{growth_token}" },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["customDomainId"]).to be_nil
+      expect(body["shortUrl"]).not_to include("links.example.com")
+    end
+
+    it "updates randomizer custom domain without breaking pool" do
+      randomizer = growth_user.links.create!(
+        link_type: "randomizer",
+        name: "Pool Brand",
+        short_code: "pool1",
+        custom_domain: verified_domain,
+        pool_entries_attributes: [
+          { destination_url: "https://example.com/a", weight: 50, position: 0 },
+          { destination_url: "https://example.com/b", weight: 50, position: 1 }
+        ]
+      )
+
+      patch "/api/v1/links/#{randomizer.id}",
+            params: { link: { custom_domain_id: nil } },
+            headers: { "Authorization" => "Bearer #{growth_token}" },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["poolEntries"].length).to eq(2)
+      expect(body["customDomainId"]).to be_nil
+    end
+  end
 end

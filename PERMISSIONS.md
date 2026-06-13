@@ -36,12 +36,12 @@ Permissions::Rules  →  Ability (CanCanCan)
 | `campaigns` | Campaign CRUD + assign/unassign links |
 | `workspaces` | Workspaces, team API, workspace-scoped links/campaigns |
 | `randomizer` | Link type in controller (not CanCanCan) |
-| `custom_domains` | Custom domain CRUD (also requires growth/enterprise tier) |
+| `custom_domains` | Custom domain CRUD (also requires growth/enterprise tier on billing account; owner/admin only) |
 | `web_push` | Web push subscription create/destroy |
 
 When a flag is disabled, related `permissions` booleans are `false` in client JSON and Ability rules are not applied.
 
-**Deploy:** `db:seed` idempotently enables the `campaigns` flag on every run. If campaigns nav/API return 403 in production, run `bundle exec rails db:seed` once or toggle **Admin → Feature Flags → campaigns**. Campaign **create** still requires Starter+ (`max_campaigns` on free tier is 0).
+**Deploy:** `db:seed` idempotently enables the `campaigns` and `workspaces` flags on every run. If campaigns nav/API return 403 in production, run `bundle exec rails db:seed` once or toggle **Admin → Feature Flags → campaigns**. If team/workspaces APIs return 403, run seed or toggle **workspaces**. Campaign **create** still requires Starter+ (`max_campaigns` on free tier is 0).
 
 ## Solo user matrix
 
@@ -82,13 +82,19 @@ Accessible workspaces = any workspace the user has a `WorkspaceMembership` on (n
 | `TeamMembership` update | yes | no | no |
 | `TeamMembership` destroy | yes | yes | no |
 
-Presenter mapping: `team.invite` = owner/admin; `team.manage` = owner only.
+Presenter mapping: `team.invite` = owner/admin; `team.removeMember` = owner/admin (destroy membership); `team.manage` = owner only (update member role).
 
-### Custom domains (`custom_domains` flag + growth/enterprise tier)
+### Custom domains (`custom_domains` flag + growth/enterprise tier on billing account)
+
+Billing account = team owner's user (fallback: self). Tier checks and domain ownership use the billing account, not the current member's personal tier.
 
 | Action | owner/admin on allowed tier |
 |--------|----------------------------|
-| create / update / destroy | own domains only |
+| create / update / destroy | billing account's domains only |
+
+Members (`team_role: member`) are denied at the API layer even if the flag is on.
+
+Domain limits (`limits.domains`): Growth = 10 max; Enterprise = unlimited. Enforced on create.
 
 ### Other solo resources
 
@@ -138,12 +144,13 @@ Defined in `User::TIER_LIMITS`. Exposed in client JSON as:
 {
   "limits": {
     "links": { "used": 1, "max": 1 },
-    "campaigns": { "used": 0, "max": 0 }
+    "campaigns": { "used": 0, "max": 0 },
+    "domains": { "used": 0, "max": 10 }
   }
 }
 ```
 
-`max: null` means unlimited. `campaigns.used` counts the user's campaigns.
+`max: null` means unlimited. `campaigns.used` counts the user's campaigns. `domains.used` counts the billing account's custom domains.
 
 ## Admin API routes
 

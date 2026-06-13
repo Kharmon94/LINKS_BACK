@@ -59,7 +59,9 @@ module Api
           return render json: { error: "Randomizer feature is not enabled" }, status: :forbidden
         end
 
-        if @link.update(link_params)
+        @link.assign_attributes(link_params)
+        assign_workspace_and_domain!(@link)
+        if @link.save
           render json: { link: @link.as_json_for_client }
         else
           render json: { error: @link.errors.full_messages.to_sentence }, status: :unprocessable_entity
@@ -126,13 +128,31 @@ module Api
           link.workspace = workspace if workspace
         end
 
-        if link.custom_domain_id.present?
-          domain = current_user.custom_domains.find_by(id: link.custom_domain_id)
-          link.custom_domain = domain if domain
-        else
-          default_domain = current_user.custom_domains.find_by(is_default: true)
-          link.custom_domain_id = default_domain.id if default_domain
+        billing_account = current_user.billing_account
+
+        if custom_domain_id_param_present?
+          if link.custom_domain_id.present?
+            domain = resolve_custom_domain_for_link(billing_account, link.custom_domain_id)
+            link.custom_domain_id = domain&.id
+          else
+            link.custom_domain_id = nil
+          end
+        elsif link.new_record?
+          default_domain = billing_account.custom_domains.verified.find_by(is_default: true)
+          link.custom_domain_id = default_domain&.id
         end
+      end
+
+      def custom_domain_id_param_present?
+        link_params_source.key?(:custom_domain_id)
+      end
+
+      def resolve_custom_domain_for_link(billing_account, domain_id)
+        billing_account.custom_domains.verified.find_by(id: domain_id)
+      end
+
+      def link_params_source
+        params[:link].presence || params
       end
 
       def link_params

@@ -2,10 +2,10 @@
 
 class User < ApplicationRecord
   TIER_LIMITS = {
-    "free" => { max_links: 1, max_campaigns: 0 },
-    "starter" => { max_links: 20, max_campaigns: 2 },
-    "growth" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY },
-    "enterprise" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY }
+    "free" => { max_links: 1, max_campaigns: 0, max_custom_domains: 0 },
+    "starter" => { max_links: 20, max_campaigns: 2, max_custom_domains: 0 },
+    "growth" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY, max_custom_domains: 10 },
+    "enterprise" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY, max_custom_domains: Float::INFINITY }
   }.freeze
 
   devise :database_authenticatable, :recoverable, :rememberable, :validatable,
@@ -121,6 +121,21 @@ class User < ApplicationRecord
     return false if limit == Float::INFINITY
 
     campaigns.count >= limit
+  end
+
+  def billing_account
+    team = primary_team
+    return self unless team
+
+    team.owner_membership&.user || self
+  end
+
+  def at_custom_domain_limit?
+    account = billing_account
+    limit = TIER_LIMITS[account.subscription_tier][:max_custom_domains]
+    return false if limit == Float::INFINITY
+
+    account.custom_domains.count >= limit
   end
 
   def as_json_for_client

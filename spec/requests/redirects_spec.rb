@@ -44,10 +44,20 @@ RSpec.describe "Redirects", type: :request do
   end
 
   it "redirects on the API host (not only SHORT_LINK_HOST)" do
-    get "/#{link.short_code}", headers: { "HTTP_HOST" => "links-api-production.up.railway.app" }
+    api_host = "links-api-production.up.railway.app"
+    original_api_host = ENV["API_HOST"]
+    ENV["API_HOST"] = api_host
+
+    get "/#{link.short_code}", headers: { "HTTP_HOST" => api_host }
 
     expect(response).to have_http_status(:found)
     expect(response.headers["Location"]).to include("example.com/landing")
+  ensure
+    if original_api_host.nil?
+      ENV.delete("API_HOST")
+    else
+      ENV["API_HOST"] = original_api_host
+    end
   end
 
   it "records click event and increments clicks_count" do
@@ -115,5 +125,125 @@ RSpec.describe "Redirects", type: :request do
     expect(event.destination_url).to eq(
       "https://example.com/a?utm_source=newsletter&utm_medium=email"
     )
+  end
+
+  describe "custom domain host isolation" do
+    def flag!(key, enabled:)
+      FeatureFlag.find_by!(key: key).update!(enabled: enabled)
+    end
+
+    let!(:custom_domain) do
+      CustomDomain.create!(
+        user: user,
+        domain: "brand.example.com",
+        status: "verified",
+        verified_at: Time.current
+      )
+    end
+
+    let!(:custom_link) do
+      user.links.create!(
+        destination_url: "https://example.com/custom",
+        name: "Custom Host Link",
+        short_code: "cust01",
+        custom_domain: custom_domain
+      )
+    end
+
+    before { flag!("custom_domains", enabled: true) }
+
+    it "redirects single link on verified custom host" do
+      get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => custom_domain.domain }
+
+      expect(response).to have_http_status(:found)
+      expect(response.headers["Location"]).to include("example.com/custom")
+    end
+
+    it "returns 404 for platform link on custom host" do
+      get "/#{link.short_code}", headers: { "HTTP_HOST" => custom_domain.domain }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 404 for custom link on platform host" do
+      get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 404 on pending custom host without platform fallback" do
+      pending_domain = CustomDomain.create!(
+        user: user,
+        domain: "pending.example.com",
+        status: "pending"
+      )
+
+      get "/#{link.short_code}", headers: { "HTTP_HOST" => pending_domain.domain }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns 404 on unknown host" do
+      get "/#{link.short_code}", headers: { "HTTP_HOST" => "unknown.example.com" }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "does not leak links across tenants sharing the same short code" do
+      other_user = User.create!(
+        email: "other-redirect@example.com",
+        password: "password123",
+        name: "Other Redirect User",
+        subscription_tier: "growth",
+        role: "owner"
+      )
+      other_domain = other_user.custom_domains.create!(
+        domain: "other-brand.example.com",
+        status: "verified",
+        verified_at: Time.current
+      )
+      other_user.links.create!(
+        destination_url: "https://example.com/other-tenant",
+        name: "Other Tenant Link",
+        short_code: custom_link.short_code,
+        custom_domain: other_domain
+      )
+
+      get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => custom_domain.domain }
+
+      expect(response).to have_http_status(:found)
+      expect(response.headers["Location"]).to include("example.com/custom")
+      expect(response.headers["Location"]).not_to include("example.com/other-tenant")
+    end
+
+    context "randomizer on custom host" do
+      let!(:randomizer) do
+        user.links.create!(
+          link_type: "randomizer",
+          name: "Custom Randomizer",
+          short_code: "randcd",
+          custom_domain: custom_domain,
+          pool_entries_attributes: [
+            { destination_url: "https://example.com/a", weight: 50, position: 0 },
+            { destination_url: "https://example.com/b", weight: 50, position: 1 }
+          ]
+        )
+      end
+
+      before { flag!("randomizer", enabled: true) }
+
+      it "redirects and records pool attribution" do
+        entry = randomizer.pool_entries.first
+        allow_any_instance_of(Link).to receive(:resolve_redirect).and_return(
+          Link::ResolvedRedirect.new(url: entry.destination_url, pool_entry: entry)
+        )
+
+        get "/#{randomizer.short_code}", headers: { "HTTP_HOST" => custom_domain.domain }
+
+        expect(response).to have_http_status(:found)
+        event = randomizer.click_events.last
+        expect(event.pool_entry_id).to eq(entry.id)
+      end
+    end
   end
 end

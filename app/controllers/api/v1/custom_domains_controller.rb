@@ -7,11 +7,18 @@ module Api
       before_action :set_domain, only: %i[update destroy verify]
 
       def index
-        render json: { domains: current_user.custom_domains.order(created_at: :desc).map(&:as_json_for_client) }
+        render json: { domains: billing_account.custom_domains.order(created_at: :desc).map(&:as_json_for_client) }
       end
 
       def create
-        domain = current_user.custom_domains.build(domain_params)
+        if billing_account.at_custom_domain_limit?
+          return render json: {
+            error: "You've reached your tier limit for custom domains. Upgrade to add more.",
+            upgrade_url: "/pricing"
+          }, status: :forbidden
+        end
+
+        domain = billing_account.custom_domains.build(domain_params)
         authorize! :create, domain
 
         if domain.save
@@ -24,6 +31,10 @@ module Api
       def update
         authorize! :update, @domain
         if params[:is_default].present? && ActiveModel::Type::Boolean.new.cast(params[:is_default])
+          unless @domain.verified?
+            return render json: { error: "Domain must be verified before setting as default" },
+                          status: :unprocessable_entity
+          end
           @domain.set_as_default!
         end
         render json: { domain: @domain.reload.as_json_for_client }
@@ -53,14 +64,22 @@ module Api
 
       private
 
-      def require_custom_domains!
-        return if CustomDomain.allowed_for?(current_user)
+      def billing_account
+        current_user.billing_account
+      end
 
-        render json: { error: "Custom domains are not available on your plan" }, status: :forbidden
+      def require_custom_domains!
+        unless CustomDomain.allowed_for?(current_user)
+          return render json: { error: "Custom domains are not available on your plan" }, status: :forbidden
+        end
+
+        unless Permissions::Rules::CAMPAIGN_MANAGER_ROLES.include?(current_user.team_role)
+          return render json: { error: "Only team owners and admins can manage custom domains" }, status: :forbidden
+        end
       end
 
       def set_domain
-        @domain = current_user.custom_domains.find(params[:id])
+        @domain = billing_account.custom_domains.find(params[:id])
       end
 
       def domain_params

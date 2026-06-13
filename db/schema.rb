@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_12_150000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_12_160000) do
   create_table "billing_events", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "stripe_event_id"
@@ -110,7 +110,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_12_150000) do
     t.index ["campaign_id"], name: "index_links_on_campaign_id"
     t.index ["custom_domain_id"], name: "index_links_on_custom_domain_id"
     t.index ["link_type"], name: "index_links_on_link_type"
-    t.index ["short_code"], name: "index_links_on_short_code", unique: true
+    t.index ["short_code", "custom_domain_id"], name: "index_links_on_short_code_and_custom_domain", unique: true, where: "custom_domain_id IS NOT NULL"
+    t.index ["short_code"], name: "index_links_on_short_code_platform", unique: true, where: "custom_domain_id IS NULL"
     t.index ["user_id"], name: "index_links_on_user_id"
     t.index ["workspace_id"], name: "index_links_on_workspace_id"
   end

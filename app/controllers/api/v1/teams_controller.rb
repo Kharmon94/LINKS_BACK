@@ -43,8 +43,18 @@ module Api
 
       def create_invitation
         authorize! :create, TeamInvitation
+        email = invitation_params[:email].to_s.strip.downcase
+
+        if @team.team_memberships.joins(:user).exists?(users: { email: email })
+          return render json: { error: "This email is already a team member" }, status: :unprocessable_entity
+        end
+
+        if @team.team_invitations.pending.exists?(email: email)
+          return render json: { error: "A pending invitation already exists for this email" }, status: :unprocessable_entity
+        end
+
         invitation = @team.team_invitations.build(
-          email: invitation_params[:email].to_s.strip.downcase,
+          email: email,
           role: invitation_params[:role].presence || "member",
           invited_by: current_user
         )

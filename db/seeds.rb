@@ -72,8 +72,8 @@ FEATURE_FLAG_DEFAULTS = [
   { key: "campaigns", enabled: true, always_enable: true, description: "Campaign management and grouping", category: "product" },
   { key: "randomizer", enabled: false, description: "Random destination link rotation", category: "product" },
   { key: "web_push", enabled: true, description: "Browser push notification subscriptions", category: "integrations" },
-  { key: "workspaces", enabled: false, description: "Team workspaces and collaboration", category: "product" },
-  { key: "custom_domains", enabled: false, description: "Custom branded short-link domains", category: "integrations" }
+  { key: "workspaces", enabled: true, always_enable: true, description: "Team workspaces and collaboration", category: "product" },
+  { key: "custom_domains", enabled: true, always_enable: true, description: "Custom branded short-link domains", category: "integrations" }
 ].freeze
 
 FEATURE_FLAG_DEFAULTS.each do |attrs|
