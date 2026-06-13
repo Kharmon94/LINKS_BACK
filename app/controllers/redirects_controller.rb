@@ -34,14 +34,23 @@ class RedirectsController < ApplicationController
   end
 
   def find_platform_link(short_code)
-    link = Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: nil)
-    return link if link
+    candidates = Link.includes(:pool_entries, :custom_domain)
+                     .where(short_code: short_code)
+                     .to_a
 
-    # Links auto-assigned a default custom domain still share platform short URLs in emails/UI.
-    Link.includes(:pool_entries, :custom_domain)
-        .joins(:custom_domain)
-        .merge(CustomDomain.verified.where(is_default: true))
-        .find_by(short_code: short_code)
+    return nil if candidates.empty?
+    return candidates.first if candidates.one?
+
+    platform = candidates.find { |link| link.custom_domain_id.nil? }
+    return platform if platform
+
+    verified_branded = candidates.select { |link| link.custom_domain&.verified? }
+    return verified_branded.first if verified_branded.one?
+
+    default_branded = verified_branded.find { |link| link.custom_domain&.is_default? }
+    return default_branded if default_branded
+
+    nil
   end
 
   def platform_redirect_host?(host)

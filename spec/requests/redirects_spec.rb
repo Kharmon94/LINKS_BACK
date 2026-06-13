@@ -172,7 +172,26 @@ RSpec.describe "Redirects", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "returns 404 for non-default custom link on platform host" do
+    it "returns 404 for non-default custom link on platform host when another tenant shares the code" do
+      other_user = User.create!(
+        email: "ambiguous-redirect@example.com",
+        password: "password123",
+        name: "Ambiguous Redirect User",
+        subscription_tier: "growth",
+        role: "owner"
+      )
+      other_domain = other_user.custom_domains.create!(
+        domain: "other-brand.example.com",
+        status: "verified",
+        verified_at: Time.current
+      )
+      other_user.links.create!(
+        destination_url: "https://example.com/other-tenant",
+        name: "Other Tenant Link",
+        short_code: custom_link.short_code,
+        custom_domain: other_domain
+      )
+
       get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
 
       expect(response).to have_http_status(:not_found)
@@ -181,6 +200,13 @@ RSpec.describe "Redirects", type: :request do
     it "redirects default custom domain link on platform host" do
       custom_domain.update!(is_default: true)
 
+      get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
+
+      expect(response).to have_http_status(:found)
+      expect(response.headers["Location"]).to include("example.com/custom")
+    end
+
+    it "redirects a sole branded link on platform host when no platform-namespace match exists" do
       get "/#{custom_link.short_code}", headers: { "HTTP_HOST" => short_link_host }
 
       expect(response).to have_http_status(:found)
