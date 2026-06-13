@@ -82,7 +82,7 @@ Accessible workspaces = any workspace the user has a `WorkspaceMembership` on (n
 | `TeamMembership` update | yes | no | no |
 | `TeamMembership` destroy | yes | yes | no |
 
-Presenter mapping: `team.invite` = owner/admin; `team.removeMember` = owner/admin (destroy membership); `team.manage` = owner only (update member role).
+Presenter mapping: `settings.billing` = user is the billing account holder (pays for their primary team), regardless of team role label (`owner` / `admin` / `member`). Collaborators on someone else's team do not get billing. `team.invite` = owner/admin; `team.removeMember` = owner/admin (destroy membership); `team.manage` = owner only (update member role).
 
 ### Custom domains (`custom_domains` flag + growth/enterprise tier on billing account)
 
@@ -102,7 +102,7 @@ Domain limits (`limits.domains`): Growth = 10 max; Enterprise = unlimited. Enfor
 |-------------------|---------|
 | `WebPushSubscription` | create/destroy own (when `web_push` flag on) |
 | `User` | show/update self |
-| `:checkout` | create if `team_role` is `owner` |
+| `:checkout` | create if user is the billing account holder (`user.id == billing_account.id`) |
 | `:portal` | create if billing allowed + `stripe_customer_id` present |
 | `Plan` | read (public) |
 | `:analytics` | read (always) |

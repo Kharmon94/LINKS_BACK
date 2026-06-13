@@ -59,8 +59,8 @@ RSpec.describe Ability, type: :model do
       expect(ability).to be_able_to(:create, :checkout)
     end
 
-    it "denies billing for member role" do
-      expect(Ability.new(member_user)).not_to be_able_to(:create, :checkout)
+    it "allows checkout for personal account holders with member team role label" do
+      expect(Ability.new(member_user)).to be_able_to(:create, :checkout)
     end
 
     it "denies portal without stripe customer" do
@@ -259,8 +259,20 @@ RSpec.describe Ability, type: :model do
       expect(hash[:settings][:billing]).to be true
     end
 
-    it "reflects member billing denial in presenter" do
+    it "allows billing for personal account holders even when team role label is member" do
       hash = Permissions::Rules.new(member_user).permissions_hash
+      expect(hash[:settings][:billing]).to be true
+    end
+
+    it "denies billing when the user is not the billing account holder" do
+      payer = growth_user
+      collaborator = member_user
+      org = Team.create!(name: "Shared Org", personal: false)
+      org.team_memberships.create!(user: payer, role: "owner")
+      org.team_memberships.create!(user: collaborator, role: "member")
+      collaborator.team_memberships.joins(:team).where(teams: { personal: true }).delete_all
+
+      hash = Permissions::Rules.new(collaborator.reload).permissions_hash
       expect(hash[:settings][:billing]).to be false
     end
   end

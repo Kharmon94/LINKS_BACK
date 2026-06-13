@@ -3,7 +3,6 @@
 module Permissions
   # Single source of truth for authorization rules shared by Ability and Presenter.
   class Rules
-    BILLING_ROLES = %w[owner].freeze
     CAMPAIGN_MANAGER_ROLES = %w[owner admin].freeze
 
     attr_reader :user
@@ -25,7 +24,7 @@ module Permissions
     end
 
     def billing_allowed?
-      BILLING_ROLES.include?(user.team_role)
+      user.id == user.billing_account.id
     end
 
     def portal_allowed?
@@ -122,6 +121,7 @@ module Permissions
     def settings_permissions
       {
         billing: billing_allowed?,
+        portal: portal_allowed?,
         domains: CustomDomain.allowed_for?(user) && user.team_role.in?(CAMPAIGN_MANAGER_ROLES)
       }
     end
