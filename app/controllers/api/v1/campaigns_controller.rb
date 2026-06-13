@@ -6,7 +6,7 @@ module Api
       include WorkspaceScoping
 
       before_action :require_campaigns_feature!
-      load_and_authorize_resource through: :current_user, except: %i[index assign_links unassign_links]
+      load_and_authorize_resource through: :current_user, except: %i[index create assign_links unassign_links]
       before_action :set_campaign, only: %i[assign_links unassign_links]
 
       def index
@@ -28,7 +28,7 @@ module Api
         end
 
         @campaign = current_user.campaigns.build(campaign_params)
-        @campaign.workspace_id = current_user.active_workspace_id if FeatureFlag.enabled?(:workspaces)
+        assign_workspace!(@campaign)
         authorize! :create, @campaign
 
         if @campaign.save
@@ -83,6 +83,13 @@ module Api
       def campaign_params
         p = params[:campaign].presence || params
         p.permit(:name, :description)
+      end
+
+      def assign_workspace!(campaign)
+        return unless FeatureFlag.enabled?(:workspaces)
+
+        workspace = current_user.active_workspace || current_user.accessible_workspaces.first
+        campaign.workspace = workspace if workspace
       end
     end
   end

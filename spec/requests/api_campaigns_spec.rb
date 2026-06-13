@@ -81,6 +81,41 @@ RSpec.describe "API Campaigns", type: :request do
     end
   end
 
+  describe "with workspaces enabled" do
+    before do
+      FeatureFlag.find_by(key: "workspaces").update!(enabled: true)
+    end
+
+    it "creates a campaign scoped to the active workspace" do
+      workspace = user.active_workspace
+
+      expect do
+        post "/api/v1/campaigns",
+             params: { campaign: { name: "Workspace Campaign", description: "Scoped" } },
+             headers: auth_headers(user),
+             as: :json
+      end.to change(Campaign, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(Campaign.last.workspace_id).to eq(workspace.id)
+    end
+
+    it "creates a campaign when active workspace is unset but memberships exist" do
+      workspace = user.active_workspace
+      user.update!(active_workspace: nil)
+
+      expect do
+        post "/api/v1/campaigns",
+             params: { campaign: { name: "Fallback Workspace Campaign" } },
+             headers: auth_headers(user),
+             as: :json
+      end.to change(Campaign, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      expect(Campaign.last.workspace_id).to eq(workspace.id)
+    end
+  end
+
   describe "limits and flags" do
     it "rejects create when at campaign limit" do
       free_user = User.create!(
