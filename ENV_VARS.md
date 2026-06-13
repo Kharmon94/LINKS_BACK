@@ -17,7 +17,7 @@
 | `CRON_SECRET` | Cron endpoints | Bearer or `?secret=` |
 | `AWS_*` | S3 uploads | When all set, Active Storage uses `:amazon` |
 | `SHORT_LINK_HOST` | Optional | Host shown in link JSON (no scheme), e.g. `links.blackcollar.io` |
-| `API_HOST` | Optional | API deployment host (e.g. `api.blackcollar.io` or `links-api-production.up.railway.app`). Treated as a platform redirect host; skips custom-domain DB lookup for faster default short links. |
+| `API_HOST` | Optional | API deployment host (e.g. `api.blackcollar.io`). No longer required for redirects: any host that is not a registered custom domain resolves platform short links. Still useful for documentation and future host-specific behavior. |
 | `VITE_CUSTOM_DOMAIN_CNAME_TARGET` | Frontend build | Shared DNS CNAME target shown in Settings → Domains Step 2b (defaults from `VITE_API_URL` host). |
 | `REDIRECT_ASYNC_CLICKS` | Optional | Set to `true` to record clicks in a background job so the 302 returns sooner. Requires Solid Queue (`SOLID_QUEUE_IN_PUMA=true`) or clicks may not persist. |
 | `SOLID_QUEUE_IN_PUMA` | Optional | Run `true` on single-server Railway deploys so background jobs (e.g. async click recording) process. |
@@ -53,7 +53,7 @@ Short URLs must reach **Rails** `GET /:short_code` (`RedirectsController`), not 
 | `API_URL` | API origin for the short-link proxy, e.g. `https://api.blackcollar.io` (no trailing slash). |
 | `PORT` | Set by Railway; the proxy listens here. |
 
-The proxy forwards `X-Forwarded-For`, `User-Agent`, and `Referer` from the browser to the API so redirect click analytics use the visitor IP. The API trusts Railway/private proxy ranges in production (`config.action_dispatch.trusted_proxies`).
+The proxy forwards `X-Forwarded-For`, `X-Forwarded-Host` (original `Host`, e.g. `links.blackcollar.io`), `User-Agent`, and `Referer` from the browser to the API so redirects resolve the platform namespace and click analytics use the visitor IP. The API trusts Railway/private proxy ranges in production (`config.action_dispatch.trusted_proxies`).
 
 `VITE_API_URL` remains required at **frontend build time** for SPA calls to `/api/v1/...`; only the short-link path uses `API_URL` at runtime.
 
@@ -78,13 +78,13 @@ Customer branded domains must hit the **API** service (`RedirectsController`), n
 5. **Customer DNS** — customer adds the record Railway shows (often CNAME → `{service}.up.railway.app`) or your shared target from `CUSTOM_DOMAIN_CNAME_TARGET` / `VITE_CUSTOM_DOMAIN_CNAME_TARGET`.
 6. **Env on API service:**
    - `SHORT_LINK_HOST=links.blackcollar.io` (platform short links — also a Railway custom domain on API service)
-   - `API_HOST=api.blackcollar.io` (treat as platform redirect host; skips custom-domain DB lookup for speed)
+   - `API_HOST=api.blackcollar.io` (optional; platform redirects work on any non-custom-domain host)
 7. **Env on frontend build:**
    - `VITE_CUSTOM_DOMAIN_CNAME_TARGET` — shared DNS target shown in Settings step 2b
 
 **Important:** `api.blackcollar.io` is your platform API hostname. Customer domains still need individual Railway registration for TLS; their DNS may CNAME to the Railway service hostname, not necessarily to `api.blackcollar.io`.
 
-Redirect isolation: platform hosts resolve only `custom_domain_id: nil` links; verified custom hosts resolve only links on that domain; pending or unknown custom hosts return 404 (no platform fallback).
+Redirect isolation: verified custom hosts resolve only links on that domain; pending custom hosts return 404 (no platform fallback). All other hosts (including `api.blackcollar.io` when proxied) resolve platform short links via `find_platform_link`.
 
 ### Feature flags (`db:seed`)
 

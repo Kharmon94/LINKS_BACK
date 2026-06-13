@@ -21,16 +21,21 @@ class RedirectsController < ApplicationController
 
   def find_link_for_request
     short_code = params[:short_code]
-    host = request.host.to_s.downcase
+    host = effective_redirect_host
 
-    if platform_redirect_host?(host)
-      return find_platform_link(short_code)
+    custom_domain = CustomDomain.find_by(domain: host)
+    if custom_domain
+      return nil unless custom_domain.verified?
+
+      return Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: custom_domain.id)
     end
 
-    custom_domain = CustomDomain.verified.find_by(domain: host)
-    return nil unless custom_domain
+    find_platform_link(short_code)
+  end
 
-    Link.includes(:pool_entries).find_by(short_code: short_code, custom_domain_id: custom_domain.id)
+  def effective_redirect_host
+    request.headers["X-Forwarded-Host"].to_s.split(",").first.to_s.strip.downcase.presence ||
+      request.host.to_s.downcase
   end
 
   def find_platform_link(short_code)
@@ -51,14 +56,6 @@ class RedirectsController < ApplicationController
     return default_branded if default_branded
 
     nil
-  end
-
-  def platform_redirect_host?(host)
-    default_host = ENV.fetch("SHORT_LINK_HOST", "links.blackcollar.io").to_s.downcase
-    return true if host == default_host
-
-    api_host = ENV["API_HOST"].to_s.downcase
-    api_host.present? && host == api_host
   end
 
   def enqueue_click_record(link, resolved, destination)

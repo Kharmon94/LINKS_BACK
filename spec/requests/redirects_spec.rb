@@ -53,6 +53,32 @@ RSpec.describe "Redirects", type: :request do
     expect(response.headers["Location"]).to end_with("/analytics")
   end
 
+  it "redirects on the API host without API_HOST when host is not a custom domain" do
+    original_api_host = ENV["API_HOST"]
+    ENV.delete("API_HOST")
+
+    get "/#{link.short_code}", headers: { "HTTP_HOST" => "api.blackcollar.io" }
+
+    expect(response).to have_http_status(:found)
+    expect(response.headers["Location"]).to include("example.com/landing")
+  ensure
+    if original_api_host.nil?
+      ENV.delete("API_HOST")
+    else
+      ENV["API_HOST"] = original_api_host
+    end
+  end
+
+  it "redirects using X-Forwarded-Host from the frontend proxy" do
+    get "/#{link.short_code}", headers: {
+      "HTTP_HOST" => "api.blackcollar.io",
+      "HTTP_X_FORWARDED_HOST" => short_link_host
+    }
+
+    expect(response).to have_http_status(:found)
+    expect(response.headers["Location"]).to include("example.com/landing")
+  end
+
   it "redirects on the API host (not only SHORT_LINK_HOST)" do
     api_host = "links-api-production.up.railway.app"
     original_api_host = ENV["API_HOST"]
@@ -244,8 +270,8 @@ RSpec.describe "Redirects", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it "returns 404 on unknown host" do
-      get "/#{link.short_code}", headers: { "HTTP_HOST" => "unknown.example.com" }
+    it "returns 404 on unknown host without a matching short code" do
+      get "/abcd12", headers: { "HTTP_HOST" => "unknown.example.com" }
 
       expect(response).to have_http_status(:not_found)
     end
