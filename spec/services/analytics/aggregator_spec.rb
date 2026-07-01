@@ -90,6 +90,29 @@ RSpec.describe Analytics::Aggregator do
       expect(data[:topWorkspaces].first[:clicks]).to eq(1)
     end
 
+    it "returns 0 clickGrowth when this week matches last week" do
+      link.click_events.create!(clicked_at: 10.days.ago, device_type: "Desktop")
+
+      data = described_class.new(user.scoped_links).overview_for(user)
+
+      expect(data[:clickGrowth]).to eq(0.0)
+    end
+
+    it "returns positive clickGrowth when this week has clicks and last week had none" do
+      data = described_class.new(user.scoped_links).overview_for(user)
+
+      expect(data[:clickGrowth]).to eq(100.0)
+    end
+
+    it "returns negative clickGrowth when this week drops versus last week" do
+      link.click_events.create!(clicked_at: 10.days.ago, device_type: "Desktop")
+      link.click_events.create!(clicked_at: 11.days.ago, device_type: "Desktop")
+
+      data = described_class.new(user.scoped_links).overview_for(user)
+
+      expect(data[:clickGrowth]).to eq(-50.0)
+    end
+
     it "ranks topLinks by click_events count, not stale clicks_count" do
       popular = user.links.create!(destination_url: "https://popular.com", name: "Popular", clicks_count: 0)
       stale = user.links.create!(destination_url: "https://stale.com", name: "Stale", clicks_count: 100)

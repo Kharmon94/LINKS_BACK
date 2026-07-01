@@ -26,7 +26,7 @@ module Analytics
       week_ago = 7.days.ago
       clicks_this_week = events.where("clicked_at >= ?", week_ago).count
       clicks_prev_week = events.where(clicked_at: (14.days.ago)...(week_ago)).count
-      growth = clicks_prev_week.positive? ? ((clicks_this_week - clicks_prev_week).to_f / clicks_prev_week * 100).round(1) : 0.0
+      growth = week_over_week_click_growth(clicks_this_week, clicks_prev_week)
 
       result = {
         totalClicks: total_clicks,
@@ -79,6 +79,13 @@ module Analytics
     end
 
     private
+
+    def week_over_week_click_growth(clicks_this_week, clicks_prev_week)
+      return 0.0 if clicks_this_week == clicks_prev_week
+      return 100.0 if clicks_prev_week.zero? && clicks_this_week.positive?
+
+      ((clicks_this_week - clicks_prev_week).to_f / clicks_prev_week * 100).round(1)
+    end
 
     def resolve_link_ids
       if @scope.is_a?(Link)
