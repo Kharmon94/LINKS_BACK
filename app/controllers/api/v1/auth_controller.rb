@@ -30,6 +30,11 @@ module Api
           return render json: { error: "Invalid or expired token" }, status: :unauthorized
         end
 
+        if user.password_set?
+          user.clear_magic_link!
+          return render json: { user: user.as_json_for_client, token: JwtService.encode(user) }
+        end
+
         password = params[:password].presence || params.dig(:auth, :password)
         password_confirmation = params[:password_confirmation].presence || params.dig(:auth, :password_confirmation)
 
@@ -38,26 +43,17 @@ module Api
             requiresPassword: true,
             email: user.email,
             name: user.name,
-            mode: user.password_set? ? "sign_in" : "set_password"
+            mode: "set_password"
           }
         end
 
-        if user.password_set?
-          unless user.valid_password?(password)
-            return render json: { error: "Incorrect password" }, status: :unauthorized
-          end
-
-          user.update!(password_set_at: Time.current) if user.password_set_at.blank?
-        else
-          user.password = password
-          user.password_confirmation = password_confirmation.presence || password
-          unless user.save
-            return render json: { error: user.errors.full_messages.to_sentence }, status: :unprocessable_entity
-          end
-
-          user.update!(password_set_at: Time.current)
+        user.password = password
+        user.password_confirmation = password_confirmation.presence || password
+        unless user.save
+          return render json: { error: user.errors.full_messages.to_sentence }, status: :unprocessable_entity
         end
 
+        user.update!(password_set_at: Time.current)
         user.clear_magic_link!
         render json: { user: user.as_json_for_client, token: JwtService.encode(user) }
       end

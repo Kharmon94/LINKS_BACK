@@ -28,19 +28,18 @@ RSpec.describe "API Auth", type: :request do
     expect(ActionMailer::Base.deliveries.last.to).to eq([user.email])
   end
 
-  it "validates magic link token and requires password for returning users" do
+  it "signs in returning user with token only" do
     user.assign_magic_link!
     post "/api/auth/verify", params: { token: user.magic_link_token }, as: :json
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
-    expect(body["requiresPassword"]).to eq(true)
-    expect(body["email"]).to eq(user.email)
-    expect(body["mode"]).to eq("sign_in")
-    expect(body["token"]).to be_nil
-    expect(user.reload.magic_link_token).to be_present
+    expect(body["token"]).to be_present
+    expect(body["user"]["email"]).to eq(user.email)
+    expect(body["requiresPassword"]).to be_nil
+    expect(user.reload.magic_link_token).to be_nil
   end
 
-  it "signs in returning user with correct existing password without changing it" do
+  it "signs in returning user with token only even when password param is sent" do
     user.assign_magic_link!
     token = user.magic_link_token
     hash_before = user.encrypted_password
@@ -57,24 +56,14 @@ RSpec.describe "API Auth", type: :request do
 
   it "does not rotate password hash on consecutive magic-link sign-ins" do
     user.assign_magic_link!
-    post "/api/auth/verify", params: { token: user.magic_link_token, password: "password123" }, as: :json
+    post "/api/auth/verify", params: { token: user.magic_link_token }, as: :json
     expect(response).to have_http_status(:ok)
     hash_after_first = user.reload.encrypted_password
 
     user.assign_magic_link!
-    post "/api/auth/verify", params: { token: user.magic_link_token, password: "password123" }, as: :json
+    post "/api/auth/verify", params: { token: user.magic_link_token }, as: :json
     expect(response).to have_http_status(:ok)
     expect(user.reload.encrypted_password).to eq(hash_after_first)
-  end
-
-  it "returns 401 for returning user with wrong password" do
-    user.assign_magic_link!
-    post "/api/auth/verify",
-         params: { token: user.magic_link_token, password: "wrongpassword" },
-         as: :json
-    expect(response).to have_http_status(:unauthorized)
-    expect(response.parsed_body["error"]).to eq("Incorrect password")
-    expect(user.reload.magic_link_token).to be_present
   end
 
   it "requires set_password mode for users without password_set_at" do
