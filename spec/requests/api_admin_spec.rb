@@ -71,7 +71,7 @@ RSpec.describe "Admin users", type: :request do
     expect(response).to have_http_status(:ok)
     user_json = response.parsed_body["user"]
     expect(user_json).to include("teamId", "teamName", "membershipRole")
-    expect(user_json["teamId"]).to eq(member.primary_team.id.to_s)
+    expect(user_json["teamId"]).to eq(member.primary_team.public_id)
   end
 
   it "updates subscription tier" do

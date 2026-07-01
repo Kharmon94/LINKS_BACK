@@ -76,4 +76,21 @@ RSpec.describe "API Account", type: :request do
       expect(prefs["weekly_reports"]).to eq(false)
     end
   end
+
+  describe "PATCH /api/v1/account/active_workspace" do
+    before do
+      FeatureFlag.find_by(key: "workspaces").update!(enabled: true)
+    end
+
+    it "accepts workspace public_id" do
+      workspace = user.active_workspace
+      patch "/api/v1/account/active_workspace",
+            params: { workspace_id: workspace.public_id },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["user"]["activeWorkspaceId"]).to eq(workspace.public_id)
+    end
+  end
 end

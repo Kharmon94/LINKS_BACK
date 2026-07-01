@@ -60,15 +60,17 @@ module Api
 
       def add_member
         authorize! :update, @workspace
-        membership = current_user.primary_team.team_memberships.find_by!(user_id: params[:user_id])
+        user = HasPublicId.find_by_param!(User, params[:user_id])
+        membership = current_user.primary_team.team_memberships.find_by!(user_id: user.id)
         @workspace.workspace_memberships.find_or_create_by!(user: membership.user)
         render json: { workspace: @workspace.reload.as_json_for_client(include_members: true) }
       end
 
       def remove_member
         authorize! :update, @workspace
-        membership = @workspace.workspace_memberships.find_by!(user_id: params[:user_id])
-        team_membership = current_user.primary_team.team_memberships.find_by(user_id: params[:user_id])
+        user = HasPublicId.find_by_param!(User, params[:user_id])
+        membership = @workspace.workspace_memberships.find_by!(user_id: user.id)
+        team_membership = current_user.primary_team.team_memberships.find_by(user_id: user.id)
         if team_membership&.role == "owner"
           return render json: { error: "Cannot remove the team owner from a workspace" }, status: :unprocessable_entity
         end
@@ -86,7 +88,7 @@ module Api
       end
 
       def set_workspace
-        @workspace = current_user.accessible_workspaces.find(params[:id])
+        @workspace = HasPublicId.find_by_param!(current_user.accessible_workspaces, params[:id])
       end
 
       def workspace_params

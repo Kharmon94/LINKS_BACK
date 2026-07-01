@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_01_130000) do
   create_table "app_settings", force: :cascade do |t|
     t.string "key", null: false
     t.text "value"
@@ -41,6 +41,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
     t.integer "workspace_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "public_id", null: false
+    t.index ["public_id"], name: "index_campaigns_on_public_id", unique: true
     t.index ["user_id"], name: "index_campaigns_on_user_id"
   end
 
@@ -115,9 +117,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
     t.string "utm_campaign"
     t.string "utm_term"
     t.string "utm_content"
+    t.string "public_id", null: false
     t.index ["campaign_id"], name: "index_links_on_campaign_id"
     t.index ["custom_domain_id"], name: "index_links_on_custom_domain_id"
     t.index ["link_type"], name: "index_links_on_link_type"
+    t.index ["public_id"], name: "index_links_on_public_id", unique: true
     t.index ["short_code", "custom_domain_id"], name: "index_links_on_short_code_and_custom_domain", unique: true, where: "custom_domain_id IS NOT NULL"
     t.index ["short_code"], name: "index_links_on_short_code_platform", unique: true, where: "custom_domain_id IS NULL"
     t.index ["user_id"], name: "index_links_on_user_id"
@@ -171,6 +175,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
     t.boolean "personal", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "public_id", null: false
+    t.index ["public_id"], name: "index_teams_on_public_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
@@ -193,9 +199,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
     t.datetime "password_set_at"
     t.integer "active_workspace_id"
     t.json "notification_preferences", default: {}, null: false
+    t.string "public_id", null: false
     t.index ["active_workspace_id"], name: "index_users_on_active_workspace_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "provider IS NOT NULL AND uid IS NOT NULL"
+    t.index ["public_id"], name: "index_users_on_public_id", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
@@ -227,6 +235,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_120000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "public_id", null: false
+    t.index ["public_id"], name: "index_workspaces_on_public_id", unique: true
     t.index ["team_id"], name: "index_workspaces_on_team_id"
   end
 

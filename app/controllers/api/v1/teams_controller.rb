@@ -112,7 +112,11 @@ module Api
       end
 
       def set_membership
-        @membership = @team.team_memberships.joins(:user).find_by!(users: { id: params[:member_id] })
+        user = HasPublicId.find_by_param!(
+          User.joins(:team_memberships).where(team_memberships: { team_id: @team.id }),
+          params[:member_id]
+        )
+        @membership = @team.team_memberships.find_by!(user_id: user.id)
       end
 
       def invitation_params
@@ -128,7 +132,7 @@ module Api
         workspace_names = user.workspaces.where(team_id: @team.id).pluck(:name)
         links_scope = user.links
         {
-          id: user.id.to_s,
+          id: user.public_id,
           name: user.name,
           email: user.email,
           role: membership.role,

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Workspace < ApplicationRecord
+  include HasPublicId
+
   belongs_to :team
   has_many :workspace_memberships, dependent: :destroy
   has_many :users, through: :workspace_memberships
@@ -23,6 +25,7 @@ class Workspace < ApplicationRecord
   def as_json_for_client(include_members: false)
     json = {
       id: id.to_s,
+      publicId: public_id,
       name: name,
       description: description.to_s,
       linksCount: links_count,
@@ -34,7 +37,7 @@ class Workspace < ApplicationRecord
       json[:members] = workspace_memberships.includes(:user).map do |membership|
         team_membership = team.team_memberships.find_by(user_id: membership.user_id)
         {
-          id: membership.user_id.to_s,
+          id: membership.user.public_id,
           name: membership.user.name,
           email: membership.user.email,
           role: team_membership&.role || "member"
@@ -47,6 +50,7 @@ class Workspace < ApplicationRecord
   def as_json_for_admin
     {
       id: id.to_s,
+      publicId: public_id,
       name: name,
       description: description.to_s,
       linksCount: links_count,

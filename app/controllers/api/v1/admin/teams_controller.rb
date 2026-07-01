@@ -23,11 +23,14 @@ module Api
         private
 
         def set_team
-          @team = Team.includes(
-            team_memberships: :user,
-            team_invitations: [],
-            workspaces: []
-          ).find(params[:id])
+          @team = HasPublicId.find_by_param!(
+            Team.includes(
+              team_memberships: :user,
+              team_invitations: [],
+              workspaces: []
+            ),
+            params[:id]
+          )
         end
 
         def team_scope

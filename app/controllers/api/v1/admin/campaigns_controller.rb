@@ -24,14 +24,15 @@ module Api
         private
 
         def set_campaign
-          @campaign = Campaign.find(params[:id])
+          @campaign = HasPublicId.find_by_param!(Campaign, params[:id])
         end
 
         def campaign_json(campaign)
           {
             id: campaign.id.to_s,
+            publicId: campaign.public_id,
             name: campaign.name,
-            userId: campaign.user_id.to_s,
+            userId: campaign.user.public_id,
             userEmail: campaign.user.email,
             linksCount: campaign.links.count,
             createdAt: campaign.created_at&.iso8601

@@ -47,7 +47,7 @@ module Api
 
       def active_workspace
         authorize! :update, current_user
-        workspace = current_user.accessible_workspaces.find_by(id: params[:workspace_id])
+        workspace = HasPublicId.find_by_param!(current_user.accessible_workspaces, params[:workspace_id])
         unless workspace
           return render json: { error: "Workspace not found" }, status: :not_found
         end

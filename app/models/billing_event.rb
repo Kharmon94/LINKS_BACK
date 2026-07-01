@@ -10,7 +10,7 @@ class BillingEvent < ApplicationRecord
   def as_json_for_admin
     {
       id: id.to_s,
-      userId: user_id.to_s,
+      userId: user.public_id,
       email: user.email,
       eventType: event_type,
       tier: tier,

@@ -34,7 +34,7 @@ module Api
 
         def portal_session
           authorize! :create, :admin_billing_portal
-          user = User.find(params[:user_id])
+          user = HasPublicId.find_by_param!(User, params[:user_id])
           key = StripeMode.secret_key
           return head :service_unavailable if key.blank?
           return render json: { error: "No Stripe customer" }, status: :unprocessable_entity if user.stripe_customer_id.blank?
@@ -51,7 +51,7 @@ module Api
 
         def cancel_subscription
           authorize! :create, :admin_billing_cancel
-          user = User.find(params[:user_id])
+          user = HasPublicId.find_by_param!(User, params[:user_id])
           key = StripeMode.secret_key
           return head :service_unavailable if key.blank?
           return render json: { error: "No Stripe customer" }, status: :unprocessable_entity if user.stripe_customer_id.blank?
@@ -108,7 +108,8 @@ module Api
 
         def billing_user_json(user, include_subscription: true)
           base = {
-            id: user.id.to_s,
+            id: user.public_id,
+            publicId: user.public_id,
             email: user.email,
             name: user.name,
             subscriptionTier: user.subscription_tier,

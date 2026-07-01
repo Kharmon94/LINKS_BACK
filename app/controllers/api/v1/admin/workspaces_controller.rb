@@ -24,14 +24,15 @@ module Api
         private
 
         def set_workspace
-          @workspace = Workspace.find(params[:id])
+          @workspace = HasPublicId.find_by_param!(Workspace, params[:id])
         end
 
         def workspace_json(workspace)
           {
             id: workspace.id.to_s,
+            publicId: workspace.public_id,
             name: workspace.name,
-            teamId: workspace.team_id.to_s,
+            teamId: workspace.team.public_id,
             teamName: workspace.team.name,
             linksCount: workspace.links.count,
             createdAt: workspace.created_at&.iso8601

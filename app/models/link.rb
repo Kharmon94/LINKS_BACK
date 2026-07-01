@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Link < ApplicationRecord
+  include HasPublicId
+
   LINK_TYPES = %w[single randomizer].freeze
 
   belongs_to :user
@@ -116,6 +118,7 @@ class Link < ApplicationRecord
     full_short = "https://#{short_host}/#{short_code}"
     {
       id: id.to_s,
+      publicId: public_id,
       name: name.presence || "Untitled",
       originalUrl: randomizer? ? "#{pool_entries.size} destinations" : destination_url,
       shortCode: short_code,
@@ -124,9 +127,9 @@ class Link < ApplicationRecord
       clicks: clicks_count,
       createdAt: created_at&.iso8601,
       linkType: link_type,
-      campaign: campaign ? { id: campaign.id.to_s, name: campaign.name } : nil,
-      campaignId: campaign_id&.to_s,
-      workspaceId: workspace_id&.to_s,
+      campaign: campaign ? { id: campaign.id.to_s, publicId: campaign.public_id, name: campaign.name } : nil,
+      campaignId: campaign&.public_id,
+      workspaceId: workspace&.public_id,
       customDomainId: custom_domain_id&.to_s,
       isRandomizer: randomizer?,
       poolEntries: pool_entries.map { |e| pool_entry_json(e) },
@@ -143,7 +146,7 @@ class Link < ApplicationRecord
   def as_json_for_admin
     json = as_json_for_client
     json.merge(
-      userId: user_id.to_s,
+      userId: user.public_id,
       userEmail: user.email
     )
   end

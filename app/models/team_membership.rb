@@ -13,7 +13,7 @@ class TeamMembership < ApplicationRecord
 
   def as_json_for_client
     {
-      id: user_id.to_s,
+      id: user.public_id,
       name: user.name,
       email: user.email,
       role: role,

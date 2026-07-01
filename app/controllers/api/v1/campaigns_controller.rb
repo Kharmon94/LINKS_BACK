@@ -6,8 +6,7 @@ module Api
       include WorkspaceScoping
 
       before_action :require_campaigns_feature!
-      load_and_authorize_resource through: :current_user, except: %i[index create assign_links unassign_links]
-      before_action :set_campaign, only: %i[assign_links unassign_links]
+      before_action :set_campaign, only: %i[show update destroy assign_links unassign_links]
 
       def index
         campaigns = scoped_campaigns.order(created_at: :desc)
@@ -55,7 +54,7 @@ module Api
 
       def assign_links
         authorize! :assign_links, @campaign
-        link_ids = Array(params[:link_ids]).map(&:to_s)
+        link_ids = resolve_link_ids(Array(params[:link_ids]))
         links = scoped_links.where(id: link_ids)
         links.update_all(campaign_id: @campaign.id)
         render json: { campaign: @campaign.reload.as_json_for_client(include_links: true) }
@@ -63,7 +62,7 @@ module Api
 
       def unassign_links
         authorize! :unassign_links, @campaign
-        link_ids = Array(params[:link_ids]).map(&:to_s)
+        link_ids = resolve_link_ids(Array(params[:link_ids]))
         @campaign.links.where(id: link_ids).update_all(campaign_id: nil)
         render json: { campaign: @campaign.reload.as_json_for_client(include_links: true) }
       end
@@ -77,7 +76,13 @@ module Api
       end
 
       def set_campaign
-        @campaign = scoped_campaigns.find(params[:id])
+        @campaign = HasPublicId.find_by_param!(scoped_campaigns, params[:id])
+      end
+
+      def resolve_link_ids(link_ids)
+        link_ids.map do |link_id|
+          HasPublicId.find_by_param!(scoped_links, link_id).id
+        end
       end
 
       def campaign_params

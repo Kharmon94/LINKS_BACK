@@ -48,6 +48,17 @@ RSpec.describe "API Campaigns", type: :request do
       expect(body["links"].first["id"]).to eq(link.id.to_s)
     end
 
+    it "shows campaign by public_id and numeric fallback" do
+      campaign = user.campaigns.create!(name: "Public ID Campaign")
+      get "/api/v1/campaigns/#{campaign.public_id}", headers: auth_headers(user)
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["campaign"]["publicId"]).to eq(campaign.public_id)
+
+      get "/api/v1/campaigns/#{campaign.id}", headers: auth_headers(user)
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["campaign"]["id"]).to eq(campaign.id.to_s)
+    end
+
     it "updates and destroys campaign" do
       campaign = user.campaigns.create!(name: "Old Name")
       patch "/api/v1/campaigns/#{campaign.id}",
@@ -61,6 +72,13 @@ RSpec.describe "API Campaigns", type: :request do
         delete "/api/v1/campaigns/#{campaign.id}", headers: auth_headers(user)
       end.to change(Campaign, :count).by(-1)
       expect(response).to have_http_status(:no_content)
+    end
+
+    it "resolves campaign by public_id" do
+      campaign = user.campaigns.create!(name: "Public ID Campaign")
+      get "/api/v1/campaigns/#{campaign.public_id}", headers: auth_headers(user)
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["campaign"]["publicId"]).to eq(campaign.public_id)
     end
   end
 

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class User < ApplicationRecord
+  include HasPublicId
+
   TIER_LIMITS = {
     "free" => { max_links: 1, max_campaigns: 0, max_custom_domains: 0 },
     "starter" => { max_links: 20, max_campaigns: 2, max_custom_domains: 0 },
@@ -122,7 +124,7 @@ class User < ApplicationRecord
     return unless record.respond_to?(:workspace=)
 
     workspace = if workspace_id.present?
-                  accessible_workspaces.find_by(id: workspace_id)
+                  HasPublicId.find_by_param!(accessible_workspaces, workspace_id)
                 elsif record.workspace_id.present?
                   accessible_workspaces.find_by(id: record.workspace_id)
                 else
@@ -156,12 +158,13 @@ class User < ApplicationRecord
   def as_json_for_client
     base = {
       id: id.to_s,
+      publicId: public_id,
       email: email,
       name: name,
       subscriptionTier: subscription_tier,
       role: team_role,
       admin: admin,
-      activeWorkspaceId: active_workspace_id&.to_s
+      activeWorkspaceId: active_workspace&.public_id
     }
     base.merge!(Permissions::Presenter.for(self))
     base
@@ -182,7 +185,7 @@ class User < ApplicationRecord
       createdAt: created_at&.iso8601,
       provider: provider,
       stripeCustomerId: stripe_customer_id,
-      teamId: membership&.team_id&.to_s,
+      teamId: membership&.team&.public_id,
       teamName: membership&.team&.name,
       membershipRole: membership&.role
     )
@@ -191,6 +194,7 @@ class User < ApplicationRecord
         json = link.as_json_for_client
         {
           id: json[:id],
+          publicId: json[:publicId],
           name: json[:name],
           shortCode: json[:shortCode],
           shortUrl: json[:shortUrl],

@@ -38,7 +38,7 @@ module Api
         private
 
         def set_user
-          @user = User.find(params[:id])
+          @user = HasPublicId.find_by_param!(User, params[:id])
         end
 
         def admin_user_params

@@ -207,6 +207,24 @@ RSpec.describe "API Links", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+
+    it "resolves link by public_id" do
+      get "/api/v1/links/#{link.public_id}",
+          headers: { "Authorization" => "Bearer #{token}" },
+          as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["link"]["publicId"]).to eq(link.public_id)
+    end
+
+    it "falls back to numeric id in the URL" do
+      get "/api/v1/links/#{link.id}",
+          headers: { "Authorization" => "Bearer #{token}" },
+          as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["link"]["id"]).to eq(link.id.to_s)
+    end
   end
 
   describe "PATCH /api/v1/links/:id" do

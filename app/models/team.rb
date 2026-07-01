@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Team < ApplicationRecord
+  include HasPublicId
+
   has_many :team_memberships, dependent: :destroy
   has_many :users, through: :team_memberships
   has_many :team_invitations, dependent: :destroy
@@ -27,6 +29,7 @@ class Team < ApplicationRecord
 
     base = {
       id: id.to_s,
+      publicId: public_id,
       name: name,
       personal: personal,
       memberCount: member_count,

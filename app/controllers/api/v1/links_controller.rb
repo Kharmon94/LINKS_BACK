@@ -98,10 +98,16 @@ module Api
       private
 
       def filtered_links
-        scope = @links.includes(:campaign, :pool_entries)
-        scope = scope.where(campaign_id: params[:campaign_id]) if params[:campaign_id].present?
+        scope = @links.includes(:campaign, :pool_entries, :workspace)
+        if params[:campaign_id].present?
+          campaign = HasPublicId.find_by_param!(current_user.campaigns, params[:campaign_id])
+          scope = scope.where(campaign_id: campaign.id)
+        end
         scope = scope.where(link_type: params[:link_type]) if params[:link_type].present?
-        scope = scope.where(workspace_id: params[:workspace_id]) if params[:workspace_id].present?
+        if params[:workspace_id].present?
+          workspace = HasPublicId.find_by_param!(current_user.accessible_workspaces, params[:workspace_id])
+          scope = scope.where(workspace_id: workspace.id)
+        end
         if params[:q].present?
           term = "%#{params[:q].to_s.downcase}%"
           scope = scope.where(
@@ -117,7 +123,7 @@ module Api
       end
 
       def set_link
-        @link = scoped_links.find(params[:id])
+        @link = HasPublicId.find_by_param!(scoped_links, params[:id])
       end
 
       def randomizer_requested?
@@ -166,12 +172,25 @@ module Api
 
       def link_params
         p = params[:link].presence || params
-        p.permit(
+        permitted = p.permit(
           :destination_url, :name, :short_code, :link_type, :campaign_id,
           :workspace_id, :custom_domain_id,
           :utm_source, :utm_medium, :utm_campaign, :utm_term, :utm_content,
           pool_entries_attributes: %i[id destination_url weight position _destroy]
         )
+        resolve_link_foreign_keys!(permitted)
+        permitted
+      end
+
+      def resolve_link_foreign_keys!(permitted)
+        if permitted.key?(:campaign_id) && permitted[:campaign_id].present?
+          campaign = HasPublicId.find_by_param!(current_user.campaigns, permitted[:campaign_id])
+          permitted[:campaign_id] = campaign.id
+        end
+        if permitted.key?(:workspace_id) && permitted[:workspace_id].present?
+          workspace = HasPublicId.find_by_param!(current_user.accessible_workspaces, permitted[:workspace_id])
+          permitted[:workspace_id] = workspace.id
+        end
       end
     end
   end

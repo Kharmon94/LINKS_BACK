@@ -29,7 +29,7 @@ module Api
         private
 
         def set_link
-          @link = Link.includes(:user).find(params[:id])
+          @link = HasPublicId.find_by_param!(Link.includes(:user), params[:id])
         end
 
         def link_scope
@@ -40,7 +40,8 @@ module Api
 
           scope = Link.includes(:user).order(created_at: :desc)
           if params[:user_id].present?
-            scope = scope.where(user_id: params[:user_id])
+            user = HasPublicId.find_by_param!(User, params[:user_id])
+            scope = scope.where(user_id: user.id)
           end
           if params[:q].present?
             term = "%#{ActiveRecord::Base.sanitize_sql_like(params[:q].to_s.downcase)}%"

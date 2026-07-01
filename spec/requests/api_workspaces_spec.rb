@@ -73,15 +73,27 @@ RSpec.describe "Workspaces API", type: :request do
       end
     end
 
-    it "updates the user's active workspace" do
+    it "updates the user's active workspace by public_id" do
       patch "/api/v1/account/active_workspace",
-            params: { workspace_id: new_workspace.id },
+            params: { workspace_id: new_workspace.public_id },
             headers: auth_headers(owner),
             as: :json
 
       expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["user"]["activeWorkspaceId"]).to eq(new_workspace.id.to_s)
+      expect(response.parsed_body["user"]["activeWorkspaceId"]).to eq(new_workspace.public_id)
       expect(owner.reload.active_workspace_id).to eq(new_workspace.id)
+    end
+  end
+
+  describe "public_id resolution" do
+    it "shows workspace by public_id with numeric fallback" do
+      get "/api/v1/workspaces/#{personal_workspace.public_id}", headers: auth_headers(owner)
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["workspace"]["publicId"]).to eq(personal_workspace.public_id)
+
+      get "/api/v1/workspaces/#{personal_workspace.id}", headers: auth_headers(owner)
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["workspace"]["id"]).to eq(personal_workspace.id.to_s)
     end
   end
 
