@@ -22,7 +22,9 @@ module Api
               configured: StripeMode.secret_key.present?,
               mode: StripeMode.live? ? "live" : "test",
               testConfigured: StripeMode.test_configured?,
-              liveConfigured: StripeMode.live_configured?
+              liveConfigured: StripeMode.live_configured?,
+              testPublishableConfigured: StripeMode.test_publishable_configured?,
+              livePublishableConfigured: StripeMode.live_publishable_configured?
             },
             mail: mail_status,
             version: app_version,

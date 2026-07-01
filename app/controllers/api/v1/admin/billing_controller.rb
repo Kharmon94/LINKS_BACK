@@ -96,7 +96,10 @@ module Api
             live: StripeMode.live?,
             source: StripeMode.mode_source,
             testConfigured: StripeMode.test_configured?,
-            liveConfigured: StripeMode.live_configured?
+            liveConfigured: StripeMode.live_configured?,
+            testPublishableConfigured: StripeMode.test_publishable_configured?,
+            livePublishableConfigured: StripeMode.live_publishable_configured?,
+            publishableKey: StripeMode.publishable_key
           }
         end
 

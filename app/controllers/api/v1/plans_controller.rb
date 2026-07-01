@@ -36,7 +36,8 @@ module Api
         plans = Plan.where(active: true).order(:tier)
         render json: {
           plans: plans.map { |p| plan_json(p) },
-          tiers: static_tiers
+          tiers: static_tiers,
+          stripePublishableKey: StripeMode.publishable_key
         }
       end
 

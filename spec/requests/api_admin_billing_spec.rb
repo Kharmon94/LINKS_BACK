@@ -80,7 +80,7 @@ RSpec.describe "API Admin Billing", type: :request do
       body = response.parsed_body
       expect(body["live"]).to be_in([true, false])
       expect(body["source"]).to be_in(%w[database env])
-      expect(body).to include("testConfigured", "liveConfigured")
+      expect(body).to include("testConfigured", "liveConfigured", "testPublishableConfigured", "livePublishableConfigured")
     end
 
     it "forbids non-admin" do

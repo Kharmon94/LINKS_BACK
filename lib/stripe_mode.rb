@@ -24,6 +24,14 @@ module StripeMode
     ENV["STRIPE_SECRET_KEY_LIVE"].present?
   end
 
+  def test_publishable_configured?
+    ENV["STRIPE_PUBLISHABLE_KEY"].present?
+  end
+
+  def live_publishable_configured?
+    ENV["STRIPE_PUBLISHABLE_KEY_LIVE"].present?
+  end
+
   def secret_key
     if live?
       ENV["STRIPE_SECRET_KEY_LIVE"].presence || ENV["STRIPE_SECRET_KEY"]
@@ -37,6 +45,14 @@ module StripeMode
       ENV["STRIPE_WEBHOOK_SECRET_LIVE"].presence || ENV["STRIPE_WEBHOOK_SECRET"]
     else
       ENV["STRIPE_WEBHOOK_SECRET"]
+    end
+  end
+
+  def publishable_key
+    if live?
+      ENV["STRIPE_PUBLISHABLE_KEY_LIVE"].presence || ENV["STRIPE_PUBLISHABLE_KEY"]
+    else
+      ENV["STRIPE_PUBLISHABLE_KEY"]
     end
   end
 

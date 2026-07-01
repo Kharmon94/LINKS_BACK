@@ -16,13 +16,18 @@
 
 ## Keys and webhooks
 
-1. Set `STRIPE_SECRET_KEY` (test) and `STRIPE_SECRET_KEY_LIVE` (live).
-2. Register webhook endpoint `POST /api/v1/webhooks/stripe` in **both** Stripe test and live dashboards:
+1. Set secret keys (server-only):
+   - `STRIPE_SECRET_KEY` (test)
+   - `STRIPE_SECRET_KEY_LIVE` (live)
+2. Set publishable keys (safe for client; also exposed on `GET /api/v1/plans` for the active mode):
+   - `STRIPE_PUBLISHABLE_KEY` (test, `pk_test_...`)
+   - `STRIPE_PUBLISHABLE_KEY_LIVE` (live, `pk_live_...`)
+3. Register webhook endpoint `POST /api/v1/webhooks/stripe` in **both** Stripe test and live dashboards:
 
    `https://api.blackcollar.io/api/v1/webhooks/stripe`
 
-3. Set `STRIPE_WEBHOOK_SECRET` and `STRIPE_WEBHOOK_SECRET_LIVE` from each endpoint's signing secret.
-4. Webhooks accept events from **either** test or live (dual-secret verification). Checkout/portal use the admin **Stripe mode** toggle (database) with `STRIPE_LIVE_MODE` env as fallback.
+4. Set `STRIPE_WEBHOOK_SECRET` and `STRIPE_WEBHOOK_SECRET_LIVE` from each endpoint's signing secret.
+5. Webhooks accept events from **either** test or live (dual-secret verification). Checkout/portal use the admin **Stripe mode** toggle (database) with `STRIPE_LIVE_MODE` env as fallback.
 
 ## Sync task
 
