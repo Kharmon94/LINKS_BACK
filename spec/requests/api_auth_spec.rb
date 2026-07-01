@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API Auth", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
   let!(:user) do
     User.create!(
       email: "member@example.com",
@@ -138,15 +139,16 @@ RSpec.describe "API Auth", type: :request do
 
   it "returns session with bearer token and refreshed jwt" do
     token = JwtService.encode(user)
+    travel 1.second
     get "/api/auth/session", headers: { "Authorization" => "Bearer #{token}" }
     expect(response).to have_http_status(:ok)
     body = response.parsed_body
     expect(body["user"]["email"]).to eq(user.email)
     expect(body["token"]).to be_present
-    expect(body["token"]).not_to eq(token)
 
     refreshed_payload = JwtService.decode(body["token"])
     expect(refreshed_payload["sub"]).to eq(user.id)
+    expect(refreshed_payload["exp"]).to be > JwtService.decode(token)["exp"]
   end
 
   it "returns 401 for expired jwt on session" do
