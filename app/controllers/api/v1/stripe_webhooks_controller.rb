@@ -15,17 +15,31 @@ module Api
       def create
         payload = request.body.read
         sig = request.env["HTTP_STRIPE_SIGNATURE"]
-        secret = StripeMode.webhook_secret
-        return head :bad_request if secret.blank?
+        event, webhook_secret_used = construct_event_with_dual_secrets(payload, sig)
+        return head :bad_request unless event
 
-        event = Stripe::Webhook.construct_event(payload, sig, secret)
+        @webhook_api_key = StripeMode.secret_key_for_webhook_secret(webhook_secret_used)
         handle_event(event)
         head :ok
-      rescue JSON::ParserError, Stripe::SignatureVerificationError
+      rescue JSON::ParserError
         head :bad_request
       end
 
       private
+
+      def construct_event_with_dual_secrets(payload, sig)
+        StripeMode.webhook_secrets.each do |secret|
+          next if secret.blank?
+
+          begin
+            event = Stripe::Webhook.construct_event(payload, sig, secret)
+            return [event, secret]
+          rescue Stripe::SignatureVerificationError
+            next
+          end
+        end
+        [nil, nil]
+      end
 
       def handle_event(event)
         case event.type
@@ -43,8 +57,7 @@ module Api
           sid = SubscriptionIdFromInvoice.call(inv)
           return if sid.blank?
 
-          key = StripeMode.secret_key
-          sub = Stripe::Subscription.retrieve(sid, { api_key: key })
+          sub = Stripe::Subscription.retrieve(sid, { api_key: webhook_api_key })
           sync_subscription_tier(sub, event, amount_cents: invoice_amount_cents(inv))
         end
       end
@@ -59,8 +72,7 @@ module Api
 
         return if session.subscription.blank?
 
-        key = StripeMode.secret_key
-        sub = Stripe::Subscription.retrieve(session.subscription, { api_key: key })
+        sub = Stripe::Subscription.retrieve(session.subscription, { api_key: webhook_api_key })
         sync_subscription_tier(sub, event)
       end
 
@@ -101,6 +113,10 @@ module Api
         end
 
         nil
+      end
+
+      def webhook_api_key
+        @webhook_api_key.presence || StripeMode.secret_key
       end
     end
   end

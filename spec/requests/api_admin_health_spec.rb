@@ -11,7 +11,7 @@ RSpec.describe "Admin health API", type: :request do
     expect(response).to have_http_status(:ok)
     health = response.parsed_body["health"]
     expect(health["database"]["ok"]).to eq(true)
-    expect(health["stripe"]).to include("configured")
+    expect(health["stripe"]).to include("configured", "mode", "testConfigured", "liveConfigured")
     expect(health).to include("version", "migrationVersion")
     expect(health["mail"]).to include(
       "resendConfigured" => false,

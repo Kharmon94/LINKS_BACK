@@ -1,7 +1,15 @@
 # frozen_string_literal: true
 
 class Plan < ApplicationRecord
-  TIERS = %w[starter growth].freeze
+  TIERS = %w[starter growth pro].freeze
+
+  def self.active_price_ids_for_mode
+    where(active: true).flat_map { |plan| plan.stripe_price_ids_for_mode.compact }.uniq
+  end
+
+  def self.active_price_id_for_mode?(price_id)
+    price_id.present? && active_price_ids_for_mode.include?(price_id)
+  end
 
   validates :name, presence: true
   validates :tier, inclusion: { in: TIERS }

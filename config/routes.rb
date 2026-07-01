@@ -96,6 +96,8 @@ Rails.application.routes.draw do
         get "health", to: "health#show"
         get "dashboard", to: "dashboard#show"
         get "billing/overview", to: "billing#overview"
+        get "billing/stripe_mode", to: "billing#stripe_mode"
+        patch "billing/stripe_mode", to: "billing#update_stripe_mode"
         get "billing/lookup", to: "billing#lookup"
         post "billing/portal_session", to: "billing#portal_session"
         post "billing/cancel_subscription", to: "billing#cancel_subscription"

@@ -222,6 +222,7 @@ RSpec.describe Ability, type: :model do
       expect(ability).to be_able_to(:read, :admin_health)
       expect(ability).to be_able_to(:read, :admin_teams)
       expect(ability).to be_able_to(:read, :admin_billing)
+      expect(ability).to be_able_to(:update, :admin_billing_stripe_mode)
       expect(ability).to be_able_to(:create, :admin_billing_portal)
       expect(ability).to be_able_to(:create, :admin_billing_cancel)
       expect(ability).to be_able_to(:read, :admin_campaigns)

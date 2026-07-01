@@ -18,7 +18,12 @@ module Api
           {
             database: database_status,
             redis: redis_status,
-            stripe: { configured: StripeMode.secret_key.present? },
+            stripe: {
+              configured: StripeMode.secret_key.present?,
+              mode: StripeMode.live? ? "live" : "test",
+              testConfigured: StripeMode.test_configured?,
+              liveConfigured: StripeMode.live_configured?
+            },
             mail: mail_status,
             version: app_version,
             migrationVersion: ActiveRecord::Migrator.current_version

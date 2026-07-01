@@ -2,7 +2,7 @@
 
 class CustomDomain < ApplicationRecord
   STATUSES = %w[pending verified].freeze
-  CUSTOM_DOMAIN_TIERS = %w[growth enterprise].freeze
+  CUSTOM_DOMAIN_TIERS = %w[growth pro enterprise].freeze
 
   belongs_to :user
   has_many :links, dependent: :nullify

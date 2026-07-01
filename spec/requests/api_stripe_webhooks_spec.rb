@@ -14,13 +14,23 @@ RSpec.describe "API Stripe Webhooks", type: :request do
     )
   end
 
+  let!(:pro_plan) do
+    Plan.create!(
+      name: "Pro",
+      tier: "pro",
+      stripe_price_id_monthly: "price_pro_monthly",
+      stripe_price_id_yearly: "price_pro_yearly",
+      active: true
+    )
+  end
+
   let!(:starter_plan) do
     Plan.create!(
       name: "Starter",
       tier: "starter",
       stripe_price_id_monthly: "price_starter_monthly",
       stripe_price_id_yearly: "price_starter_yearly",
-      active: true
+      active: false
     )
   end
 
@@ -30,12 +40,15 @@ RSpec.describe "API Stripe Webhooks", type: :request do
       tier: "growth",
       stripe_price_id_monthly: "price_growth_monthly",
       stripe_price_id_yearly: "price_growth_yearly",
-      active: true
+      active: false
     )
   end
 
   before do
-    allow(StripeMode).to receive(:webhook_secret).and_return("whsec_test")
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with("STRIPE_WEBHOOK_SECRET").and_return("whsec_test")
+    allow(ENV).to receive(:[]).with("STRIPE_WEBHOOK_SECRET_LIVE").and_return("whsec_live")
+    allow(StripeMode).to receive(:webhook_secrets).and_return(%w[whsec_test whsec_live])
     allow(Stripe::Webhook).to receive(:construct_event).and_return(event)
   end
 
@@ -43,6 +56,51 @@ RSpec.describe "API Stripe Webhooks", type: :request do
     post "/api/v1/webhooks/stripe",
          params: { type: event.type }.to_json,
          headers: { "CONTENT_TYPE" => "application/json", "HTTP_STRIPE_SIGNATURE" => "sig" }
+  end
+
+  describe "dual webhook secret verification" do
+    let(:subscription) do
+      double(
+        customer: "cus_existing",
+        items: double(data: [double(price: double(id: "price_pro_monthly"))])
+      )
+    end
+
+    let(:event) do
+      double(id: "evt_subscription_updated", type: "customer.subscription.updated", data: double(object: subscription))
+    end
+
+    before do
+      user.update!(stripe_customer_id: "cus_existing")
+    end
+
+    it "accepts events verified with the test webhook secret" do
+      allow(Stripe::Webhook).to receive(:construct_event)
+        .with(anything, "sig", "whsec_test")
+        .and_return(event)
+      allow(Stripe::Webhook).to receive(:construct_event)
+        .with(anything, "sig", "whsec_live")
+        .and_raise(Stripe::SignatureVerificationError.new("bad sig", "sig"))
+
+      post_webhook(event)
+      expect(response).to have_http_status(:ok)
+      expect(user.reload.subscription_tier).to eq("pro")
+    end
+
+    it "accepts events verified with the live webhook secret" do
+      allow(Stripe::Webhook).to receive(:construct_event)
+        .with(anything, "sig", "whsec_test")
+        .and_raise(Stripe::SignatureVerificationError.new("bad sig", "sig"))
+      allow(Stripe::Webhook).to receive(:construct_event)
+        .with(anything, "sig", "whsec_live")
+        .and_return(event)
+      allow(ENV).to receive(:[]).with("STRIPE_SECRET_KEY_LIVE").and_return("sk_live")
+      allow(Stripe::Subscription).to receive(:retrieve).and_return(subscription)
+
+      post_webhook(event)
+      expect(response).to have_http_status(:ok)
+      expect(user.reload.subscription_tier).to eq("pro")
+    end
   end
 
   describe "checkout.session.completed" do
@@ -57,7 +115,7 @@ RSpec.describe "API Stripe Webhooks", type: :request do
     let(:subscription) do
       double(
         customer: "cus_test123",
-        items: double(data: [double(price: double(id: "price_growth_monthly"))])
+        items: double(data: [double(price: double(id: "price_pro_monthly"))])
       )
     end
 
@@ -77,7 +135,7 @@ RSpec.describe "API Stripe Webhooks", type: :request do
       expect(response).to have_http_status(:ok)
       user.reload
       expect(user.stripe_customer_id).to eq("cus_test123")
-      expect(user.subscription_tier).to eq("growth")
+      expect(user.subscription_tier).to eq("pro")
     end
   end
 
@@ -97,7 +155,7 @@ RSpec.describe "API Stripe Webhooks", type: :request do
       user.update!(stripe_customer_id: "cus_existing")
     end
 
-    it "maps starter price to starter tier" do
+    it "maps legacy starter price to starter tier" do
       post_webhook(event)
       expect(response).to have_http_status(:ok)
       expect(user.reload.subscription_tier).to eq("starter")
@@ -109,7 +167,7 @@ RSpec.describe "API Stripe Webhooks", type: :request do
     let(:event) { double(id: "evt_subscription_deleted", type: "customer.subscription.deleted", data: double(object: subscription)) }
 
     before do
-      user.update!(stripe_customer_id: "cus_existing", subscription_tier: "starter")
+      user.update!(stripe_customer_id: "cus_existing", subscription_tier: "pro")
     end
 
     it "downgrades user to free" do

@@ -10,6 +10,9 @@ module Api
 
         price_id = params[:price_id].presence
         return render json: { error: "price_id required" }, status: :unprocessable_entity if price_id.blank?
+        unless Plan.active_price_id_for_mode?(price_id)
+          return render json: { error: "Invalid price_id" }, status: :unprocessable_entity
+        end
 
         session = Stripe::Checkout::Session.create(
           {

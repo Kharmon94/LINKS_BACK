@@ -58,6 +58,7 @@ RSpec.describe "API Admin Billing", type: :request do
       expect(overview["stripeLinkedUsers"]).to eq(1)
       expect(overview["mrrCents"]).to be_a(Integer)
       expect(overview["mrrSource"]).to be_in(%w[stripe fallback])
+      expect(overview["stripeMode"]).to be_in(%w[test live])
       expect(overview["recentEvents"]).to be_an(Array)
       expect(overview["recentEvents"].first).to include(
         "eventType" => "invoice.paid",
@@ -68,6 +69,42 @@ RSpec.describe "API Admin Billing", type: :request do
 
     it "forbids non-admin" do
       get "/api/v1/admin/billing/overview", headers: auth_headers(member)
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "GET /api/v1/admin/billing/stripe_mode" do
+    it "returns stripe mode for admin" do
+      get "/api/v1/admin/billing/stripe_mode", headers: auth_headers(admin)
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body["live"]).to be_in([true, false])
+      expect(body["source"]).to be_in(%w[database env])
+      expect(body).to include("testConfigured", "liveConfigured")
+    end
+
+    it "forbids non-admin" do
+      get "/api/v1/admin/billing/stripe_mode", headers: auth_headers(member)
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "PATCH /api/v1/admin/billing/stripe_mode" do
+    it "updates stripe mode for admin" do
+      patch "/api/v1/admin/billing/stripe_mode",
+            params: { live: true },
+            headers: auth_headers(admin),
+            as: :json
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["live"]).to eq(true)
+      expect(AppSetting.get("stripe_live_mode")).to eq("1")
+    end
+
+    it "forbids non-admin" do
+      patch "/api/v1/admin/billing/stripe_mode",
+            params: { live: false },
+            headers: auth_headers(member),
+            as: :json
       expect(response).to have_http_status(:forbidden)
     end
   end

@@ -9,6 +9,18 @@ module Api
           render json: { overview: billing_overview }
         end
 
+        def stripe_mode
+          authorize! :read, :admin_billing
+          render json: stripe_mode_json
+        end
+
+        def update_stripe_mode
+          authorize! :update, :admin_billing_stripe_mode
+          live = ActiveModel::Type::Boolean.new.cast(params[:live])
+          AppSetting.set("stripe_live_mode", live ? "1" : "0")
+          render json: stripe_mode_json
+        end
+
         def lookup
           authorize! :read, :admin_billing
           email = params[:email].to_s.strip.downcase
@@ -71,10 +83,20 @@ module Api
             mrrCents: mrr[:cents],
             mrrFormatted: format_money(mrr[:cents]),
             mrrSource: mrr[:source],
+            stripeMode: StripeMode.live? ? "live" : "test",
             subscribersByTier: User::TIER_LIMITS.keys.index_with { |tier| tier_counts[tier] || 0 },
             paidSubscribers: tier_counts.values.sum,
             stripeLinkedUsers: User.where.not(stripe_customer_id: nil).count,
             recentEvents: BillingEvent.includes(:user).recent.limit(20).map(&:as_json_for_admin)
+          }
+        end
+
+        def stripe_mode_json
+          {
+            live: StripeMode.live?,
+            source: StripeMode.mode_source,
+            testConfigured: StripeMode.test_configured?,
+            liveConfigured: StripeMode.live_configured?
           }
         end
 

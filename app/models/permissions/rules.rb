@@ -254,6 +254,7 @@ module Permissions
       ability.can :read, :admin_health
       ability.can :read, :admin_teams
       ability.can :read, :admin_billing
+      ability.can :update, :admin_billing_stripe_mode
       ability.can :create, :admin_billing_portal
       ability.can :create, :admin_billing_cancel
 

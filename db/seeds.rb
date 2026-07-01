@@ -11,43 +11,28 @@ removed_plans = legacy_plans.count
 legacy_plans.find_each(&:destroy!)
 puts "Removed #{removed_plans} legacy placeholder plan(s)" if removed_plans.positive?
 
-monthly = ENV["STRIPE_PRICE_STARTER_MONTHLY"].to_s.strip.presence
-yearly = ENV["STRIPE_PRICE_STARTER_YEARLY"].to_s.strip.presence
-monthly_live = ENV["STRIPE_PRICE_STARTER_MONTHLY_LIVE"].to_s.strip.presence
-yearly_live = ENV["STRIPE_PRICE_STARTER_YEARLY_LIVE"].to_s.strip.presence
+pro_monthly = ENV["STRIPE_PRICE_PRO_MONTHLY"].to_s.strip.presence
+pro_yearly = ENV["STRIPE_PRICE_PRO_YEARLY"].to_s.strip.presence
+pro_monthly_live = ENV["STRIPE_PRICE_PRO_MONTHLY_LIVE"].to_s.strip.presence
+pro_yearly_live = ENV["STRIPE_PRICE_PRO_YEARLY_LIVE"].to_s.strip.presence
 
-if monthly.present? || yearly.present? || monthly_live.present? || yearly_live.present?
-  plan = Plan.find_or_initialize_by(name: "Starter")
-  plan.tier = "starter"
-  plan.stripe_price_id_monthly = monthly if monthly
-  plan.stripe_price_id_yearly = yearly if yearly
-  plan.stripe_price_id_monthly_live = monthly_live if monthly_live
-  plan.stripe_price_id_yearly_live = yearly_live if yearly_live
+if pro_monthly.present? || pro_yearly.present? || pro_monthly_live.present? || pro_yearly_live.present?
+  plan = Plan.find_or_initialize_by(name: "Pro")
+  plan.tier = "pro"
+  plan.stripe_price_id_monthly = pro_monthly if pro_monthly
+  plan.stripe_price_id_yearly = pro_yearly if pro_yearly
+  plan.stripe_price_id_monthly_live = pro_monthly_live if pro_monthly_live
+  plan.stripe_price_id_yearly_live = pro_yearly_live if pro_yearly_live
+  plan.monthly_amount_cents = 5000
   plan.active = true
   plan.save!
-  puts "Ensured Starter plan from STRIPE_PRICE_STARTER_* env"
+  puts "Ensured Pro plan from STRIPE_PRICE_PRO_* env"
 else
-  puts "Skipping Starter plan seed (set STRIPE_PRICE_STARTER_MONTHLY / STRIPE_PRICE_STARTER_YEARLY)"
+  puts "Skipping Pro plan seed (set STRIPE_PRICE_PRO_MONTHLY / STRIPE_PRICE_PRO_YEARLY)"
 end
 
-growth_monthly = ENV["STRIPE_PRICE_GROWTH_MONTHLY"].to_s.strip.presence
-growth_yearly = ENV["STRIPE_PRICE_GROWTH_YEARLY"].to_s.strip.presence
-growth_monthly_live = ENV["STRIPE_PRICE_GROWTH_MONTHLY_LIVE"].to_s.strip.presence
-growth_yearly_live = ENV["STRIPE_PRICE_GROWTH_YEARLY_LIVE"].to_s.strip.presence
-
-if growth_monthly.present? || growth_yearly.present? || growth_monthly_live.present? || growth_yearly_live.present?
-  growth = Plan.find_or_initialize_by(name: "Growth")
-  growth.tier = "growth"
-  growth.stripe_price_id_monthly = growth_monthly if growth_monthly
-  growth.stripe_price_id_yearly = growth_yearly if growth_yearly
-  growth.stripe_price_id_monthly_live = growth_monthly_live if growth_monthly_live
-  growth.stripe_price_id_yearly_live = growth_yearly_live if growth_yearly_live
-  growth.active = true
-  growth.save!
-  puts "Ensured Growth plan from STRIPE_PRICE_GROWTH_* env"
-else
-  puts "Skipping Growth plan seed (set STRIPE_PRICE_GROWTH_MONTHLY / STRIPE_PRICE_GROWTH_YEARLY)"
-end
+deactivated = Plan.where(tier: %w[starter growth], active: true).update_all(active: false)
+puts "Deactivated #{deactivated} legacy starter/growth plan(s)" if deactivated.positive?
 
 email = ENV["ADMIN_SEED_EMAIL"].to_s.strip.presence
 password = ENV["ADMIN_SEED_PASSWORD"].to_s.strip.presence

@@ -7,7 +7,7 @@
 | `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
-| `STRIPE_PRICE_STARTER_MONTHLY` / `YEARLY` (+ `_LIVE`) | Billing | `db:seed` ensures Starter plan only when set (no placeholder IDs) |
+| `STRIPE_PRICE_PRO_MONTHLY` / `YEARLY` (+ `_LIVE`) | Billing | `db:seed` ensures Pro plan when set |
 | `DATABASE_URL` | Production (Postgres) | When unset, production falls back to SQLite files |
 | `RESEND_API_KEY` | Production email | Used as SMTP password |
 | `RESEND_SMTP_PORT` | Optional | Defaults to `465` |
@@ -72,7 +72,7 @@ bundle exec rake links:repair_platform_short_urls LINK_IDS=4 DRY_RUN=false  # si
 Customer branded domains must hit the **API** service (`RedirectsController`), not the React SPA.
 
 1. **Enable flag** — `bundle exec rails db:seed` (or Admin → Feature Flags → `custom_domains`).
-2. **Tier** — billing account (team owner) on `growth` (10 domains) or `enterprise` (unlimited).
+2. **Tier** — billing account (team owner) on `pro` (10 domains) or `enterprise` (unlimited).
 3. **TXT verify** — customer adds `_links-verification.{domain}` TXT and clicks Verify in Settings.
 4. **Railway TLS (per customer)** — after TXT verify, add `{domain}` to **API service** → Networking → Custom Domain.
 5. **Customer DNS** — customer adds the record Railway shows (often CNAME → `{service}.up.railway.app`) or your shared target from `CUSTOM_DOMAIN_CNAME_TARGET` / `VITE_CUSTOM_DOMAIN_CNAME_TARGET`.

@@ -5,6 +5,7 @@ class User < ApplicationRecord
     "free" => { max_links: 1, max_campaigns: 0, max_custom_domains: 0 },
     "starter" => { max_links: 20, max_campaigns: 2, max_custom_domains: 0 },
     "growth" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY, max_custom_domains: 10 },
+    "pro" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY, max_custom_domains: 10 },
     "enterprise" => { max_links: Float::INFINITY, max_campaigns: Float::INFINITY, max_custom_domains: Float::INFINITY }
   }.freeze
 
