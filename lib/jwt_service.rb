@@ -5,7 +5,7 @@ class JwtService
     def encode(user)
       payload = {
         sub: user.id,
-        exp: 24.hours.from_now.to_i,
+        exp: session_expiry.from_now.to_i,
         iat: Time.now.to_i
       }
       JWT.encode(payload, secret, "HS256")
@@ -22,6 +22,11 @@ class JwtService
       return nil unless payload
 
       User.find_by(id: payload["sub"])
+    end
+
+    def session_expiry
+      days = ENV.fetch("JWT_SESSION_DAYS", "30").to_i
+      days.positive? ? days.days : 30.days
     end
 
     private

@@ -19,8 +19,17 @@ module Api
             database: database_status,
             redis: redis_status,
             stripe: { configured: StripeMode.secret_key.present? },
+            mail: mail_status,
             version: app_version,
             migrationVersion: ActiveRecord::Migrator.current_version
+          }
+        end
+
+        def mail_status
+          {
+            resendConfigured: ENV["RESEND_API_KEY"].present?,
+            mailerFrom: ApplicationMailer.default[:from],
+            queueAdapter: Rails.application.config.active_job.queue_adapter.to_s
           }
         end
 

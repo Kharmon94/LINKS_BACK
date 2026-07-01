@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class UserMailer < ApplicationMailer
-  default from: ENV.fetch("MAILER_FROM", "noreply@example.com")
-
   def magic_link(user)
     @user = user
     @verify_url = "#{frontend_app_url}/auth/verify?token=#{CGI.escape(user.magic_link_token)}"

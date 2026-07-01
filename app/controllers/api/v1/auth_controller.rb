@@ -16,7 +16,7 @@ module Api
         end
 
         user.assign_magic_link!
-        UserMailer.magic_link(user).deliver_later
+        UserMailer.magic_link(user).deliver_now
 
         render json: { message: "Magic link sent! Check your email." }
       end
@@ -63,7 +63,10 @@ module Api
       end
 
       def session
-        render json: { user: current_user.as_json_for_client }
+        render json: {
+          user: current_user.as_json_for_client,
+          token: JwtService.encode(current_user)
+        }
       end
 
       def logout

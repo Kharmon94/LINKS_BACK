@@ -22,8 +22,9 @@ RSpec.describe "API Auth", type: :request do
   it "sends magic link for known user" do
     expect do
       post "/api/auth/magic-link", params: { email: user.email }, as: :json
-    end.to have_enqueued_job(ActionMailer::MailDeliveryJob)
+    end.to change { ActionMailer::Base.deliveries.count }.by(1)
     expect(response).to have_http_status(:ok)
+    expect(ActionMailer::Base.deliveries.last.to).to eq([user.email])
   end
 
   it "validates magic link token and requires password for returning users" do
@@ -135,11 +136,28 @@ RSpec.describe "API Auth", type: :request do
     expect(response.parsed_body["mode"]).to eq("set_password")
   end
 
-  it "returns session with bearer token" do
+  it "returns session with bearer token and refreshed jwt" do
     token = JwtService.encode(user)
     get "/api/auth/session", headers: { "Authorization" => "Bearer #{token}" }
     expect(response).to have_http_status(:ok)
-    expect(response.parsed_body["user"]["email"]).to eq(user.email)
+    body = response.parsed_body
+    expect(body["user"]["email"]).to eq(user.email)
+    expect(body["token"]).to be_present
+    expect(body["token"]).not_to eq(token)
+
+    refreshed_payload = JwtService.decode(body["token"])
+    expect(refreshed_payload["sub"]).to eq(user.id)
+  end
+
+  it "returns 401 for expired jwt on session" do
+    expired_token = nil
+    travel_to 31.days.ago do
+      expired_token = JwtService.encode(user)
+    end
+
+    get "/api/auth/session", headers: { "Authorization" => "Bearer #{expired_token}" }
+    expect(response).to have_http_status(:unauthorized)
+    expect(response.parsed_body["error"]).to eq("Not authenticated")
   end
 
   it "signs in with email and password" do

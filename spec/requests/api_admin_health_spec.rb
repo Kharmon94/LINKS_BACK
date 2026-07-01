@@ -13,6 +13,11 @@ RSpec.describe "Admin health API", type: :request do
     expect(health["database"]["ok"]).to eq(true)
     expect(health["stripe"]).to include("configured")
     expect(health).to include("version", "migrationVersion")
+    expect(health["mail"]).to include(
+      "resendConfigured" => false,
+      "mailerFrom" => be_present,
+      "queueAdapter" => "test"
+    )
   end
 
   it "forbids non-admin" do
