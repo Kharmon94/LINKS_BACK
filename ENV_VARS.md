@@ -8,6 +8,10 @@
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
 | `STRIPE_PRICE_PRO_MONTHLY` / `YEARLY` (+ `_LIVE`) | Billing | `db:seed` ensures Pro plan when set |
+| `STRIPE_SECRET_KEY` / `STRIPE_SECRET_KEY_LIVE` | Billing | Test / live secret keys (server-only) |
+| `STRIPE_PUBLISHABLE_KEY` / `STRIPE_PUBLISHABLE_KEY_LIVE` | Billing | Test / live publishable keys; active key on `GET /api/v1/plans` |
+| `STRIPE_WEBHOOK_SECRET` / `STRIPE_WEBHOOK_SECRET_LIVE` | Billing | Signing secrets for `POST /api/v1/webhooks/stripe` |
+| `STRIPE_LIVE_MODE` | Billing | Env fallback when admin Stripe mode toggle unset (`true` = live) |
 | `DATABASE_URL` | Production (Postgres) | When unset, production falls back to SQLite files |
 | `RESEND_API_KEY` | Production email | Used as SMTP password |
 | `RESEND_SMTP_PORT` | Optional | Defaults to `465` |

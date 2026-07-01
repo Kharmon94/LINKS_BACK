@@ -42,7 +42,10 @@ RSpec.describe "API Checkout", type: :request do
       session = double(url: "https://checkout.stripe.com/session/test")
       expect(Stripe::Checkout::Session).to receive(:create)
         .with(
-          hash_including(line_items: [{ price: "price_pro_monthly", quantity: 1 }]),
+          hash_including(
+            line_items: [{ price: "price_pro_monthly", quantity: 1 }],
+            customer_email: user.email
+          ),
           { api_key: "sk_test" }
         )
         .and_return(session)
@@ -53,6 +56,23 @@ RSpec.describe "API Checkout", type: :request do
            as: :json
       expect(response).to have_http_status(:ok)
       expect(response.parsed_body["url"]).to eq("https://checkout.stripe.com/session/test")
+    end
+
+    it "reuses stripe_customer_id when present" do
+      user.update!(stripe_customer_id: "cus_existing")
+      session = double(url: "https://checkout.stripe.com/session/test")
+      expect(Stripe::Checkout::Session).to receive(:create) do |params, opts|
+        expect(params[:customer]).to eq("cus_existing")
+        expect(params).not_to have_key(:customer_email)
+        expect(opts).to eq({ api_key: "sk_test" })
+        session
+      end
+
+      post "/api/v1/checkout/create_session",
+           params: { price_id: "price_pro_monthly" },
+           headers: auth_headers(user),
+           as: :json
+      expect(response).to have_http_status(:ok)
     end
   end
 end

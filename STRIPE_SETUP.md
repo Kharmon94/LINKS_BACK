@@ -33,6 +33,14 @@
 
 `rails stripe:sync_plans` skips plans that already have price IDs for the current mode. If it creates prices, it uses $50/mo and $500/yr (not legacy $10).
 
+## Verify readiness
+
+```bash
+bundle exec rake stripe:verify
+```
+
+Checks all required env vars for **test** and **live** modes plus Pro plan price IDs in the database. Exits non-zero if either mode is incomplete or the active mode is not ready.
+
 ## Development
 
 - Use **test** keys in development.

@@ -14,17 +14,20 @@ module Api
           return render json: { error: "Invalid price_id" }, status: :unprocessable_entity
         end
 
-        session = Stripe::Checkout::Session.create(
-          {
-            mode: "subscription",
-            line_items: [{ price: price_id, quantity: 1 }],
-            success_url: "#{frontend_origin}/dashboard?checkout=success",
-            cancel_url: "#{frontend_origin}/pricing?checkout=cancel",
-            customer_email: current_user.email,
-            client_reference_id: current_user.id.to_s
-          },
-          { api_key: key }
-        )
+        session_params = {
+          mode: "subscription",
+          line_items: [{ price: price_id, quantity: 1 }],
+          success_url: "#{frontend_origin}/dashboard?checkout=success",
+          cancel_url: "#{frontend_origin}/pricing?checkout=cancel",
+          client_reference_id: current_user.id.to_s
+        }
+        if current_user.stripe_customer_id.present?
+          session_params[:customer] = current_user.stripe_customer_id
+        else
+          session_params[:customer_email] = current_user.email
+        end
+
+        session = Stripe::Checkout::Session.create(session_params, { api_key: key })
         render json: { url: session.url }
       end
 

@@ -92,6 +92,7 @@ module Api
         end
 
         def stripe_mode_json
+          readiness = StripeMode.readiness_report
           {
             live: StripeMode.live?,
             source: StripeMode.mode_source,
@@ -99,7 +100,9 @@ module Api
             liveConfigured: StripeMode.live_configured?,
             testPublishableConfigured: StripeMode.test_publishable_configured?,
             livePublishableConfigured: StripeMode.live_publishable_configured?,
-            publishableKey: StripeMode.publishable_key
+            publishableKey: StripeMode.publishable_key,
+            currentModeReady: readiness[:currentModeReady],
+            readiness: readiness
           }
         end
 

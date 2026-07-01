@@ -67,4 +67,72 @@ module StripeMode
       ENV["STRIPE_SECRET_KEY"]
     end
   end
+
+  MODE_ENV_KEYS = {
+    test: {
+      secret: "STRIPE_SECRET_KEY",
+      publishable: "STRIPE_PUBLISHABLE_KEY",
+      webhook: "STRIPE_WEBHOOK_SECRET",
+      pro_monthly: "STRIPE_PRICE_PRO_MONTHLY",
+      pro_yearly: "STRIPE_PRICE_PRO_YEARLY"
+    },
+    live: {
+      secret: "STRIPE_SECRET_KEY_LIVE",
+      publishable: "STRIPE_PUBLISHABLE_KEY_LIVE",
+      webhook: "STRIPE_WEBHOOK_SECRET_LIVE",
+      pro_monthly: "STRIPE_PRICE_PRO_MONTHLY_LIVE",
+      pro_yearly: "STRIPE_PRICE_PRO_YEARLY_LIVE"
+    }
+  }.freeze
+
+  def mode_readiness(live:)
+    keys = MODE_ENV_KEYS[live ? :live : :test]
+    {
+      secretKey: ENV[keys[:secret]].present?,
+      publishableKey: ENV[keys[:publishable]].present?,
+      webhookSecret: ENV[keys[:webhook]].present?,
+      proMonthlyPriceEnv: ENV[keys[:pro_monthly]].present?,
+      proYearlyPriceEnv: ENV[keys[:pro_yearly]].present?
+    }
+  end
+
+  def pro_plan_has_prices_for_mode?(live: live?)
+    plan = Plan.find_by(tier: "pro", active: true)
+    return false unless plan
+
+    monthly, yearly = if live
+                        [plan.stripe_price_id_monthly_live.presence || plan.stripe_price_id_monthly,
+                         plan.stripe_price_id_yearly_live.presence || plan.stripe_price_id_yearly]
+                      else
+                        [plan.stripe_price_id_monthly, plan.stripe_price_id_yearly]
+                      end
+    monthly.present? && yearly.present?
+  end
+
+  def mode_ready?(live:)
+    mode_readiness(live: live).values.all? && pro_plan_has_prices_for_mode?(live: live)
+  end
+
+  def current_mode_ready?
+    mode_ready?(live: live?)
+  end
+
+  def readiness_report
+    {
+      currentModeReady: current_mode_ready?,
+      test: mode_readiness(live: false).merge(
+        ready: mode_ready?(live: false),
+        proPlanPrices: pro_plan_has_prices_for_mode?(live: false)
+      ),
+      live: mode_readiness(live: true).merge(
+        ready: mode_ready?(live: true),
+        proPlanPrices: pro_plan_has_prices_for_mode?(live: true)
+      )
+    }
+  end
+
+  def missing_env_vars_for_mode(live:)
+    keys = MODE_ENV_KEYS[live ? :live : :test]
+    keys.values.reject { |name| ENV[name].present? }
+  end
 end

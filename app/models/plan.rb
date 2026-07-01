@@ -27,8 +27,13 @@ class Plan < ApplicationRecord
     return nil if price_id.blank?
 
     find_each do |plan|
-      monthly, yearly = plan.stripe_price_ids_for_mode
-      return plan.tier if [monthly, yearly].compact.include?(price_id)
+      price_ids = [
+        plan.stripe_price_id_monthly,
+        plan.stripe_price_id_yearly,
+        plan.stripe_price_id_monthly_live,
+        plan.stripe_price_id_yearly_live
+      ].compact
+      return plan.tier if price_ids.include?(price_id)
     end
     nil
   end
