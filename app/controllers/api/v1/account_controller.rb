@@ -65,9 +65,37 @@ module Api
       def permitted_notification_prefs
         raw = params[:notification_preferences] || params[:notificationPreferences] || {}
         raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
-        raw.slice("email_notifications", "weekly_reports", "marketing_emails", "link_alerts").transform_values do |v|
-          ActiveModel::Type::Boolean.new.cast(v)
+        raw = raw.stringify_keys
+        result = {}
+
+        User::NOTIFICATION_CHANNEL_KEYS.each do |key|
+          result[key] = User.cast_notification_bool(raw[key]) if raw.key?(key)
         end
+
+        if raw.key?("link_alerts")
+          value = User.cast_notification_bool(raw["link_alerts"])
+          result["push_link_alerts"] = value unless raw.key?("push_link_alerts")
+          result["email_link_alerts"] = value unless raw.key?("email_link_alerts")
+        end
+
+        if raw.key?("weekly_reports")
+          value = User.cast_notification_bool(raw["weekly_reports"])
+          result["push_weekly_reports"] = value unless raw.key?("push_weekly_reports")
+          result["email_weekly_reports"] = value unless raw.key?("email_weekly_reports")
+        end
+
+        if raw.key?("marketing_emails")
+          value = User.cast_notification_bool(raw["marketing_emails"])
+          result["email_marketing"] = value unless raw.key?("email_marketing")
+        end
+
+        if raw.key?("email_notifications") && !User.cast_notification_bool(raw["email_notifications"])
+          result["email_link_alerts"] = false unless raw.key?("email_link_alerts")
+          result["email_weekly_reports"] = false unless raw.key?("email_weekly_reports")
+          result["email_marketing"] = false unless raw.key?("email_marketing")
+        end
+
+        result
       end
     end
   end

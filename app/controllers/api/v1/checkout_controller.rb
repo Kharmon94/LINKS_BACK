@@ -17,7 +17,7 @@ module Api
         session_params = {
           mode: "subscription",
           line_items: [{ price: price_id, quantity: 1 }],
-          success_url: "#{frontend_origin}/dashboard?checkout=success",
+          success_url: "#{frontend_origin}/links?checkout=success",
           cancel_url: "#{frontend_origin}/pricing?checkout=cancel",
           client_reference_id: current_user.id.to_s
         }

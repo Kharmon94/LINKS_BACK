@@ -10,13 +10,25 @@ module Api
       end
 
       def weekly_reports
-        count = User.find_each.count { |u| u.notification_preferences_hash["weekly_reports"] }
-        render json: { ok: true, enqueued: 0, eligibleUsers: count, message: "Weekly report job stub" }
+        push_count = User.find_each.count { |u| u.notification_preferences_hash["push_weekly_reports"] }
+        email_count = User.find_each.count { |u| u.notification_preferences_hash["email_weekly_reports"] }
+        render json: {
+          ok: true,
+          enqueued: 0,
+          eligibleUsers: { push: push_count, email: email_count },
+          message: "Weekly report job stub"
+        }
       end
 
       def link_milestones
-        count = User.find_each.count { |u| u.notification_preferences_hash["link_alerts"] }
-        render json: { ok: true, checked: 0, eligibleUsers: count, message: "Link milestone job stub" }
+        push_count = User.find_each.count { |u| u.notification_preferences_hash["push_link_alerts"] }
+        email_count = User.find_each.count { |u| u.notification_preferences_hash["email_link_alerts"] }
+        render json: {
+          ok: true,
+          checked: 0,
+          eligibleUsers: { push: push_count, email: email_count },
+          message: "Link milestone job stub"
+        }
       end
 
       private

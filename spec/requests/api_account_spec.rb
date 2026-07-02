@@ -55,25 +55,68 @@ RSpec.describe "API Account", type: :request do
   end
 
   describe "notification preferences" do
-    it "returns defaults" do
+    it "returns channel key defaults" do
       get "/api/v1/account/notification_preferences", headers: auth_headers(user)
       expect(response).to have_http_status(:ok)
       prefs = response.parsed_body["notificationPreferences"]
-      expect(prefs["email_notifications"]).to eq(true)
-      expect(prefs["weekly_reports"]).to eq(true)
-      expect(prefs["marketing_emails"]).to eq(false)
-      expect(prefs["link_alerts"]).to eq(true)
+      expect(prefs.keys).to match_array(User::NOTIFICATION_CHANNEL_KEYS)
+      expect(prefs["push_link_alerts"]).to eq(true)
+      expect(prefs["push_weekly_reports"]).to eq(true)
+      expect(prefs["push_marketing"]).to eq(false)
+      expect(prefs["email_link_alerts"]).to eq(true)
+      expect(prefs["email_weekly_reports"]).to eq(true)
+      expect(prefs["email_marketing"]).to eq(false)
     end
 
-    it "persists updates" do
+    it "persists individual channel toggles" do
       patch "/api/v1/account/notification_preferences",
-            params: { notification_preferences: { marketing_emails: true, weekly_reports: false } },
+            params: {
+              notification_preferences: {
+                push_marketing: true,
+                email_weekly_reports: false,
+                email_marketing: true
+              }
+            },
             headers: auth_headers(user),
             as: :json
       expect(response).to have_http_status(:ok)
       prefs = response.parsed_body["notificationPreferences"]
-      expect(prefs["marketing_emails"]).to eq(true)
-      expect(prefs["weekly_reports"]).to eq(false)
+      expect(prefs["push_marketing"]).to eq(true)
+      expect(prefs["email_weekly_reports"]).to eq(false)
+      expect(prefs["email_marketing"]).to eq(true)
+      expect(prefs["push_link_alerts"]).to eq(true)
+    end
+
+    it "migrates legacy preferences on read" do
+      user.update!(
+        notification_preferences: {
+          "link_alerts" => false,
+          "weekly_reports" => true,
+          "marketing_emails" => true,
+          "email_notifications" => false
+        }
+      )
+
+      get "/api/v1/account/notification_preferences", headers: auth_headers(user)
+      expect(response).to have_http_status(:ok)
+      prefs = response.parsed_body["notificationPreferences"]
+      expect(prefs["push_link_alerts"]).to eq(false)
+      expect(prefs["push_weekly_reports"]).to eq(true)
+      expect(prefs["email_link_alerts"]).to eq(false)
+      expect(prefs["email_weekly_reports"]).to eq(false)
+      expect(prefs["email_marketing"]).to eq(false)
+    end
+
+    it "maps legacy keys on patch" do
+      patch "/api/v1/account/notification_preferences",
+            params: { notification_preferences: { link_alerts: false, marketing_emails: true } },
+            headers: auth_headers(user),
+            as: :json
+      expect(response).to have_http_status(:ok)
+      prefs = response.parsed_body["notificationPreferences"]
+      expect(prefs["push_link_alerts"]).to eq(false)
+      expect(prefs["email_link_alerts"]).to eq(false)
+      expect(prefs["email_marketing"]).to eq(true)
     end
   end
 

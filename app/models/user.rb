@@ -73,19 +73,68 @@ class User < ApplicationRecord
       magic_link_expires_at.present? && magic_link_expires_at > Time.current
   end
 
+  NOTIFICATION_CHANNEL_KEYS = %w[
+    push_link_alerts push_weekly_reports push_marketing
+    email_link_alerts email_weekly_reports email_marketing
+  ].freeze
+
+  LEGACY_NOTIFICATION_KEYS = %w[
+    email_notifications weekly_reports marketing_emails link_alerts
+  ].freeze
+
   DEFAULT_NOTIFICATION_PREFERENCES = {
+    "push_link_alerts" => true,
+    "push_weekly_reports" => true,
+    "push_marketing" => false,
+    "email_link_alerts" => true,
+    "email_weekly_reports" => true,
+    "email_marketing" => false
+  }.freeze
+
+  LEGACY_NOTIFICATION_DEFAULTS = {
     "email_notifications" => true,
     "weekly_reports" => true,
     "marketing_emails" => false,
     "link_alerts" => true
   }.freeze
 
+  def self.cast_notification_bool(value)
+    ActiveModel::Type::Boolean.new.cast(value)
+  end
+
   def password_set?
     password_set_at.present?
   end
 
   def notification_preferences_hash
-    DEFAULT_NOTIFICATION_PREFERENCES.merge((notification_preferences || {}).stringify_keys)
+    stored = (notification_preferences || {}).stringify_keys
+    result = DEFAULT_NOTIFICATION_PREFERENCES.dup
+
+    NOTIFICATION_CHANNEL_KEYS.each do |key|
+      result[key] = self.class.cast_notification_bool(stored[key]) if stored.key?(key)
+    end
+
+    legacy = LEGACY_NOTIFICATION_DEFAULTS.merge(stored.slice(*LEGACY_NOTIFICATION_KEYS))
+    link_alerts = self.class.cast_notification_bool(legacy["link_alerts"])
+    weekly_reports = self.class.cast_notification_bool(legacy["weekly_reports"])
+    marketing_emails = self.class.cast_notification_bool(legacy["marketing_emails"])
+    email_notifications = self.class.cast_notification_bool(legacy["email_notifications"])
+
+    result["push_link_alerts"] = link_alerts unless stored.key?("push_link_alerts")
+    result["push_weekly_reports"] = weekly_reports unless stored.key?("push_weekly_reports")
+    result["push_marketing"] = false unless stored.key?("push_marketing")
+
+    unless stored.key?("email_link_alerts")
+      result["email_link_alerts"] = link_alerts && email_notifications
+    end
+    unless stored.key?("email_weekly_reports")
+      result["email_weekly_reports"] = weekly_reports && email_notifications
+    end
+    unless stored.key?("email_marketing")
+      result["email_marketing"] = marketing_emails && email_notifications
+    end
+
+    result
   end
 
   def at_link_limit?
