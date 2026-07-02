@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_01_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_02_120000) do
   create_table "app_settings", force: :cascade do |t|
     t.string "key", null: false
     t.text "value"
@@ -200,6 +200,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_01_130000) do
     t.integer "active_workspace_id"
     t.json "notification_preferences", default: {}, null: false
     t.string "public_id", null: false
+    t.datetime "pwa_installed_at"
     t.index ["active_workspace_id"], name: "index_users_on_active_workspace_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "provider IS NOT NULL AND uid IS NOT NULL"

@@ -213,7 +213,8 @@ class User < ApplicationRecord
       subscriptionTier: subscription_tier,
       role: team_role,
       admin: admin,
-      activeWorkspaceId: active_workspace&.public_id
+      activeWorkspaceId: active_workspace&.public_id,
+      pwaInstalledAt: pwa_installed_at&.iso8601
     }
     base.merge!(Permissions::Presenter.for(self))
     base

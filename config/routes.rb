@@ -91,6 +91,7 @@ Rails.application.routes.draw do
       post "cron/link_milestones", to: "cron#link_milestones"
       post "push/subscribe", to: "push_subscriptions#create"
       delete "push/unsubscribe", to: "push_subscriptions#destroy"
+      post "pwa/confirm_install", to: "pwa#confirm_install"
 
       namespace :admin do
         get "health", to: "health#show"
