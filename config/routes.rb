@@ -92,6 +92,7 @@ Rails.application.routes.draw do
       post "push/subscribe", to: "push_subscriptions#create"
       delete "push/unsubscribe", to: "push_subscriptions#destroy"
       post "pwa/confirm_install", to: "pwa#confirm_install"
+      post "pwa/reset_install", to: "pwa#reset_install"
 
       namespace :admin do
         get "health", to: "health#show"

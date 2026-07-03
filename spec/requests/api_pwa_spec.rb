@@ -47,4 +47,34 @@ RSpec.describe "PWA install confirmation", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
   end
+
+  describe "POST /api/v1/pwa/reset_install" do
+    it "clears pwa_installed_at" do
+      user.update!(pwa_installed_at: Time.current)
+      expect(user.pwa_installed_at).to be_present
+
+      post "/api/v1/pwa/reset_install", headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      json = response.parsed_body
+      expect(json["user"]["pwaInstalledAt"]).to be_nil
+      expect(user.reload.pwa_installed_at).to be_nil
+    end
+
+    it "is idempotent when already nil" do
+      expect(user.pwa_installed_at).to be_nil
+
+      post "/api/v1/pwa/reset_install", headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      json = response.parsed_body
+      expect(json["user"]["pwaInstalledAt"]).to be_nil
+      expect(user.reload.pwa_installed_at).to be_nil
+    end
+
+    it "requires authentication" do
+      post "/api/v1/pwa/reset_install", as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
 end

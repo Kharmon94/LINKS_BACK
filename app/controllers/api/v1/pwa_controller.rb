@@ -10,6 +10,12 @@ module Api
 
         render json: { user: current_user.as_json_for_client }
       end
+
+      def reset_install
+        current_user.update!(pwa_installed_at: nil)
+
+        render json: { user: current_user.as_json_for_client }
+      end
     end
   end
 end
