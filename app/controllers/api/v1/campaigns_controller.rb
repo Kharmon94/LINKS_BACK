@@ -70,7 +70,7 @@ module Api
       private
 
       def require_campaigns_feature!
-        return if FeatureFlag.enabled?(:campaigns)
+        return if FeatureFlag.enabled_for?(current_user, :campaigns)
 
         render json: { error: "Campaigns feature is not enabled" }, status: :forbidden
       end

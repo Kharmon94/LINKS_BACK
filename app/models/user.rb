@@ -23,6 +23,7 @@ class User < ApplicationRecord
   has_many :workspace_memberships, dependent: :destroy
   has_many :workspaces, through: :workspace_memberships
   has_many :custom_domains, dependent: :destroy
+  has_many :feature_flag_overrides, class_name: "UserFeatureFlagOverride", dependent: :destroy
   belongs_to :active_workspace, class_name: "Workspace", optional: true
 
   after_create :provision_team!
@@ -157,7 +158,7 @@ class User < ApplicationRecord
   end
 
   def scoped_links
-    if FeatureFlag.enabled?(:workspaces) && active_workspace_id.present?
+    if FeatureFlag.enabled_for?(self, :workspaces) && active_workspace_id.present?
       links.where(workspace_id: active_workspace_id)
     else
       links
@@ -169,7 +170,7 @@ class User < ApplicationRecord
   end
 
   def assign_default_workspace!(record, workspace_id: nil)
-    return unless FeatureFlag.enabled?(:workspaces)
+    return unless FeatureFlag.enabled_for?(self, :workspaces)
     return unless record.respond_to?(:workspace=)
 
     workspace = if workspace_id.present?
@@ -218,6 +219,14 @@ class User < ApplicationRecord
     }
     base.merge!(Permissions::Presenter.for(self))
     base
+  end
+
+  def feature_flag_overrides_by_key
+    @feature_flag_overrides_by_key ||= feature_flag_overrides.index_by(&:feature_flag_key)
+  end
+
+  def clear_feature_flag_overrides_cache!
+    @feature_flag_overrides_by_key = nil
   end
 
   private

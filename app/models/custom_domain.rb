@@ -52,7 +52,7 @@ class CustomDomain < ApplicationRecord
   end
 
   def self.allowed_for?(user)
-    FeatureFlag.enabled?(:custom_domains) &&
+    FeatureFlag.enabled_for?(user, :custom_domains) &&
       CUSTOM_DOMAIN_TIERS.include?(user.billing_account.subscription_tier)
   end
 

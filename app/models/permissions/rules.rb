@@ -36,7 +36,7 @@ module Permissions
     end
 
     def feature_enabled?(key)
-      FeatureFlag.enabled?(key)
+      FeatureFlag.enabled_for?(@user, key)
     end
 
     def permissions_hash

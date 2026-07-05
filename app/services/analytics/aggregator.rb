@@ -100,7 +100,7 @@ module Analytics
     end
 
     def scoped_campaigns_for(user)
-      if FeatureFlag.enabled?(:workspaces) && user.active_workspace_id.present?
+      if FeatureFlag.enabled_for?(user, :workspaces) && user.active_workspace_id.present?
         user.campaigns.where(workspace_id: user.active_workspace_id)
       else
         user.campaigns
@@ -136,7 +136,7 @@ module Analytics
     end
 
     def top_workspaces(links, total_clicks)
-      return [] unless FeatureFlag.enabled?(:workspaces)
+      return [] unless FeatureFlag.enabled_for?(user, :workspaces)
 
       workspace_ids = links.where.not(workspace_id: nil).distinct.pluck(:workspace_id)
       return [] if workspace_ids.empty?

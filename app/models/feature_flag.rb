@@ -10,6 +10,13 @@ class FeatureFlag < ApplicationRecord
     find_by(key: key.to_s)&.enabled? || false
   end
 
+  def self.enabled_for?(user, key)
+    override = user.feature_flag_overrides_by_key[key.to_s]
+    return override.enabled if override
+
+    enabled?(key)
+  end
+
   def as_json_for_admin
     {
       key: key,

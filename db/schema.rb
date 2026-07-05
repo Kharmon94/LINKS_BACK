@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_02_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_05_120100) do
   create_table "app_settings", force: :cascade do |t|
     t.string "key", null: false
     t.text "value"
@@ -118,6 +118,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_120000) do
     t.string "utm_term"
     t.string "utm_content"
     t.string "public_id", null: false
+    t.boolean "push_alerts_enabled", default: true, null: false
+    t.boolean "email_alerts_enabled", default: true, null: false
     t.index ["campaign_id"], name: "index_links_on_campaign_id"
     t.index ["custom_domain_id"], name: "index_links_on_custom_domain_id"
     t.index ["link_type"], name: "index_links_on_link_type"
@@ -177,6 +179,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_120000) do
     t.datetime "updated_at", null: false
     t.string "public_id", null: false
     t.index ["public_id"], name: "index_teams_on_public_id", unique: true
+  end
+
+  create_table "user_feature_flag_overrides", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "feature_flag_key", null: false
+    t.boolean "enabled", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "feature_flag_key"], name: "index_user_feature_flag_overrides_on_user_and_key", unique: true
+    t.index ["user_id"], name: "index_user_feature_flag_overrides_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -255,6 +267,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_120000) do
   add_foreign_key "team_invitations", "users", column: "invited_by_id"
   add_foreign_key "team_memberships", "teams"
   add_foreign_key "team_memberships", "users"
+  add_foreign_key "user_feature_flag_overrides", "users"
   add_foreign_key "users", "workspaces", column: "active_workspace_id"
   add_foreign_key "web_push_subscriptions", "users"
   add_foreign_key "workspace_memberships", "users"

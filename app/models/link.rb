@@ -139,7 +139,9 @@ class Link < ApplicationRecord
         campaign: utm_campaign,
         term: utm_term,
         content: utm_content
-      }
+      },
+      pushAlertsEnabled: push_alerts_enabled,
+      emailAlertsEnabled: email_alerts_enabled
     }
   end
 

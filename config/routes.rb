@@ -104,7 +104,9 @@ Rails.application.routes.draw do
         post "billing/portal_session", to: "billing#portal_session"
         post "billing/cancel_subscription", to: "billing#cancel_subscription"
         resources :teams, only: %i[index show]
-        resources :users, only: %i[index show update]
+        resources :users, only: %i[index show update] do
+          resources :feature_flags, only: %i[index update], param: :key, controller: "user_feature_flags"
+        end
         resources :links, only: %i[index show destroy]
         resources :feature_flags, only: %i[index update], param: :key
         resources :campaigns, only: %i[index destroy]

@@ -238,6 +238,44 @@ RSpec.describe "API Links", type: :request do
       expect(response.parsed_body["link"]["name"]).to eq("Updated")
       expect(response.parsed_body["link"]["utmParams"]["term"]).to eq("shoes")
     end
+
+    it "updates link alert preferences" do
+      patch "/api/v1/links/#{link.id}",
+            params: { link: { push_alerts_enabled: false, email_alerts_enabled: false } },
+            headers: { "Authorization" => "Bearer #{token}" },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be false
+      expect(link.reload.push_alerts_enabled).to be false
+      expect(link.email_alerts_enabled).to be false
+    end
+
+    it "returns 404 when another user patches alert preferences" do
+      patch "/api/v1/links/#{link.id}",
+            params: { link: { push_alerts_enabled: false } },
+            headers: { "Authorization" => "Bearer #{other_token}" },
+            as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "GET /api/v1/links/:id alert fields" do
+    it "includes push and email alert preferences" do
+      link.update!(push_alerts_enabled: false, email_alerts_enabled: true)
+
+      get "/api/v1/links/#{link.id}",
+          headers: { "Authorization" => "Bearer #{token}" },
+          as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be true
+    end
   end
 
   describe "DELETE /api/v1/links/:id" do

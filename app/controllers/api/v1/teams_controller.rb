@@ -99,7 +99,7 @@ module Api
       private
 
       def require_workspaces_feature!
-        return if FeatureFlag.enabled?(:workspaces)
+        return if FeatureFlag.enabled_for?(current_user, :workspaces)
 
         render json: { error: "Workspaces feature is not enabled" }, status: :forbidden
       end

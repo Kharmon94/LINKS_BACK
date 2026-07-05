@@ -12,7 +12,7 @@ module Api
       end
 
       def scoped_campaigns
-        if FeatureFlag.enabled?(:workspaces) && current_user.active_workspace_id.present?
+        if FeatureFlag.enabled_for?(current_user, :workspaces) && current_user.active_workspace_id.present?
           current_user.campaigns.where(workspace_id: current_user.active_workspace_id)
         else
           current_user.campaigns
