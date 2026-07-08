@@ -273,6 +273,34 @@ RSpec.describe "API Links", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
+    it "updates click-based alert interval" do
+      patch "/api/v1/links/#{link.id}",
+            params: {
+              link: {
+                alert_interval_kind: "clicks",
+                alert_interval_value: 10
+              }
+            },
+            headers: { "Authorization" => "Bearer #{token}" },
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["link"]
+      expect(body["alertIntervalKind"]).to eq("clicks")
+      expect(body["alertIntervalValue"]).to eq(10)
+      expect(link.reload.alert_interval_kind).to eq("clicks")
+      expect(link.alert_interval_value).to eq(10)
+    end
+
+    it "returns 422 for invalid alert interval kind" do
+      patch "/api/v1/links/#{link.id}",
+            params: { link: { alert_interval_kind: "hours" } },
+            headers: { "Authorization" => "Bearer #{token}" },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
     it "returns 404 when another user patches alert preferences" do
       patch "/api/v1/links/#{link.id}",
             params: { link: { push_alerts_enabled: false } },
@@ -295,8 +323,21 @@ RSpec.describe "API Links", type: :request do
       body = response.parsed_body["link"]
       expect(body["pushAlertsEnabled"]).to be false
       expect(body["emailAlertsEnabled"]).to be true
+      expect(body["alertIntervalKind"]).to eq("time")
       expect(body["alertIntervalValue"]).to eq(1)
       expect(body["alertIntervalUnit"]).to eq("weeks")
+    end
+
+    it "defaults push on and email off for new links" do
+      fresh = user.links.create!(destination_url: "https://fresh.example.com", name: "Fresh")
+
+      get "/api/v1/links/#{fresh.id}",
+          headers: { "Authorization" => "Bearer #{token}" },
+          as: :json
+
+      body = response.parsed_body["link"]
+      expect(body["pushAlertsEnabled"]).to be true
+      expect(body["emailAlertsEnabled"]).to be false
     end
   end
 

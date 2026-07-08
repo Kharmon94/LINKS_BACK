@@ -176,7 +176,7 @@ module Api
           :destination_url, :name, :short_code, :link_type, :campaign_id,
           :workspace_id, :custom_domain_id,
           :push_alerts_enabled, :email_alerts_enabled,
-          :alert_interval_value, :alert_interval_unit,
+          :alert_interval_kind, :alert_interval_value, :alert_interval_unit,
           :utm_source, :utm_medium, :utm_campaign, :utm_term, :utm_content,
           pool_entries_attributes: %i[id destination_url weight position _destroy]
         )
