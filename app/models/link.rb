@@ -2,10 +2,9 @@
 
 class Link < ApplicationRecord
   include HasPublicId
+  include AlertPreferences
 
   LINK_TYPES = %w[single randomizer].freeze
-  ALERT_INTERVAL_KINDS = %w[time clicks].freeze
-  ALERT_INTERVAL_UNITS = %w[days weeks months years].freeze
 
   belongs_to :user
   belongs_to :workspace, optional: true
@@ -25,9 +24,6 @@ class Link < ApplicationRecord
   validate :randomizer_requires_pool, if: :randomizer?
   validate :custom_short_code_format, if: -> { short_code.present? && short_code_changed? }
   validate :short_code_uniqueness_scope
-  validates :alert_interval_value, numericality: { only_integer: true, greater_than_or_equal_to: 1 }, allow_nil: false
-  validates :alert_interval_kind, inclusion: { in: ALERT_INTERVAL_KINDS }
-  validates :alert_interval_unit, inclusion: { in: ALERT_INTERVAL_UNITS }, if: :time_based_alert_interval?
 
   before_validation :ensure_short_code, on: :create
   before_validation :sync_randomizer_destination
@@ -41,10 +37,6 @@ class Link < ApplicationRecord
 
   def randomizer?
     link_type == "randomizer"
-  end
-
-  def time_based_alert_interval?
-    alert_interval_kind == "time"
   end
 
   def pick_pool_entry
@@ -148,13 +140,8 @@ class Link < ApplicationRecord
         campaign: utm_campaign,
         term: utm_term,
         content: utm_content
-      },
-      pushAlertsEnabled: push_alerts_enabled,
-      emailAlertsEnabled: email_alerts_enabled,
-      alertIntervalKind: alert_interval_kind,
-      alertIntervalValue: alert_interval_value,
-      alertIntervalUnit: alert_interval_unit
-    }
+      }
+    }.merge(alert_preferences_as_json)
   end
 
   def as_json_for_admin

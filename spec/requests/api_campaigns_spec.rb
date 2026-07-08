@@ -13,6 +13,16 @@ RSpec.describe "API Campaigns", type: :request do
     )
   end
 
+  let(:other_user) do
+    User.create!(
+      email: "other-campaigns@example.com",
+      password: "password123",
+      name: "Other Campaign User",
+      subscription_tier: "starter",
+      role: "owner"
+    )
+  end
+
   before do
     FeatureFlag.find_by(key: "campaigns").update!(enabled: true)
   end
@@ -131,6 +141,219 @@ RSpec.describe "API Campaigns", type: :request do
 
       expect(response).to have_http_status(:created)
       expect(Campaign.last.workspace_id).to eq(workspace.id)
+    end
+  end
+
+  describe "PATCH /api/v1/campaigns/:id alert preferences" do
+    let!(:campaign) { user.campaigns.create!(name: "Alert Campaign") }
+
+    it "updates campaign alert preferences" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: {
+              campaign: {
+                push_alerts_enabled: false,
+                email_alerts_enabled: false,
+                alert_interval_value: 2,
+                alert_interval_unit: "months"
+              }
+            },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be false
+      expect(body["alertIntervalValue"]).to eq(2)
+      expect(body["alertIntervalUnit"]).to eq("months")
+      expect(campaign.reload.push_alerts_enabled).to be false
+      expect(campaign.email_alerts_enabled).to be false
+      expect(campaign.alert_interval_value).to eq(2)
+      expect(campaign.alert_interval_unit).to eq("months")
+    end
+
+    it "returns 422 for invalid alert interval unit" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { alert_interval_unit: "hours" } },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "updates click-based alert interval" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: {
+              campaign: {
+                alert_interval_kind: "clicks",
+                alert_interval_value: 10
+              }
+            },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["alertIntervalKind"]).to eq("clicks")
+      expect(body["alertIntervalValue"]).to eq(10)
+      expect(campaign.reload.alert_interval_kind).to eq("clicks")
+      expect(campaign.alert_interval_value).to eq(10)
+    end
+
+    it "returns 422 for invalid alert interval kind" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { alert_interval_kind: "hours" } },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 404 when another user patches alert preferences" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { push_alerts_enabled: false } },
+            headers: auth_headers(other_user),
+            as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "GET /api/v1/campaigns/:id alert fields" do
+    it "includes push and email alert preferences" do
+      campaign = user.campaigns.create!(
+        name: "Alert Fields",
+        push_alerts_enabled: false,
+        email_alerts_enabled: true
+      )
+
+      get "/api/v1/campaigns/#{campaign.id}", headers: auth_headers(user)
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be true
+      expect(body["alertIntervalKind"]).to eq("time")
+      expect(body["alertIntervalValue"]).to eq(1)
+      expect(body["alertIntervalUnit"]).to eq("weeks")
+    end
+
+    it "defaults push on and email off for new campaigns" do
+      fresh = user.campaigns.create!(name: "Fresh Campaign")
+
+      get "/api/v1/campaigns/#{fresh.id}", headers: auth_headers(user)
+
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be true
+      expect(body["emailAlertsEnabled"]).to be false
+      expect(body["alertIntervalKind"]).to eq("time")
+      expect(body["alertIntervalValue"]).to eq(1)
+      expect(body["alertIntervalUnit"]).to eq("weeks")
+    end
+  end
+
+  describe "PATCH /api/v1/campaigns/:id alert preferences" do
+    let(:campaign) { user.campaigns.create!(name: "Alert Campaign") }
+
+    it "updates campaign alert preferences" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: {
+              campaign: {
+                push_alerts_enabled: false,
+                email_alerts_enabled: false,
+                alert_interval_value: 2,
+                alert_interval_unit: "months"
+              }
+            },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be false
+      expect(body["alertIntervalValue"]).to eq(2)
+      expect(body["alertIntervalUnit"]).to eq("months")
+      expect(campaign.reload.push_alerts_enabled).to be false
+      expect(campaign.email_alerts_enabled).to be false
+      expect(campaign.alert_interval_value).to eq(2)
+      expect(campaign.alert_interval_unit).to eq("months")
+    end
+
+    it "returns 422 for invalid alert interval unit" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { alert_interval_unit: "hours" } },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "updates click-based alert interval" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: {
+              campaign: {
+                alert_interval_kind: "clicks",
+                alert_interval_value: 10
+              }
+            },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["alertIntervalKind"]).to eq("clicks")
+      expect(body["alertIntervalValue"]).to eq(10)
+      expect(campaign.reload.alert_interval_kind).to eq("clicks")
+      expect(campaign.alert_interval_value).to eq(10)
+    end
+
+    it "returns 422 for invalid alert interval kind" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { alert_interval_kind: "hours" } },
+            headers: auth_headers(user),
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 404 when another user patches alert preferences" do
+      patch "/api/v1/campaigns/#{campaign.id}",
+            params: { campaign: { push_alerts_enabled: false } },
+            headers: auth_headers(other_user),
+            as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "GET /api/v1/campaigns/:id alert fields" do
+    it "includes push and email alert preferences" do
+      campaign = user.campaigns.create!(
+        name: "Alert GET",
+        push_alerts_enabled: false,
+        email_alerts_enabled: true
+      )
+
+      get "/api/v1/campaigns/#{campaign.id}", headers: auth_headers(user)
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be false
+      expect(body["emailAlertsEnabled"]).to be true
+      expect(body["alertIntervalKind"]).to eq("time")
+      expect(body["alertIntervalValue"]).to eq(1)
+      expect(body["alertIntervalUnit"]).to eq("weeks")
+    end
+
+    it "defaults push on and email off for new campaigns" do
+      campaign = user.campaigns.create!(name: "Fresh Campaign")
+
+      get "/api/v1/campaigns/#{campaign.id}", headers: auth_headers(user)
+
+      body = response.parsed_body["campaign"]
+      expect(body["pushAlertsEnabled"]).to be true
+      expect(body["emailAlertsEnabled"]).to be false
     end
   end
 

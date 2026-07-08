@@ -87,7 +87,11 @@ module Api
 
       def campaign_params
         p = params[:campaign].presence || params
-        p.permit(:name, :description)
+        p.permit(
+          :name, :description,
+          :push_alerts_enabled, :email_alerts_enabled,
+          :alert_interval_kind, :alert_interval_value, :alert_interval_unit
+        )
       end
 
     end
