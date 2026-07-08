@@ -35,7 +35,7 @@ module Analytics
         clickGrowth: growth,
         topLinks: top_links(links, total_clicks),
         topCampaigns: top_campaigns(campaigns, total_clicks),
-        topWorkspaces: top_workspaces(links, total_clicks),
+        topWorkspaces: top_workspaces(user, links, total_clicks),
         clicksOverTime: clicks_over_time_by_period(events),
         deviceBreakdown: device_breakdown(events),
         recentClicks: recent_clicks(events)
@@ -135,7 +135,7 @@ module Analytics
       end
     end
 
-    def top_workspaces(links, total_clicks)
+    def top_workspaces(user, links, total_clicks)
       return [] unless FeatureFlag.enabled_for?(user, :workspaces)
 
       workspace_ids = links.where.not(workspace_id: nil).distinct.pluck(:workspace_id)

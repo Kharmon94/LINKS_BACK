@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_05_120100) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_08_120000) do
   create_table "app_settings", force: :cascade do |t|
     t.string "key", null: false
     t.text "value"
@@ -120,6 +120,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_05_120100) do
     t.string "public_id", null: false
     t.boolean "push_alerts_enabled", default: true, null: false
     t.boolean "email_alerts_enabled", default: true, null: false
+    t.integer "alert_interval_value", default: 1, null: false
+    t.string "alert_interval_unit", default: "weeks", null: false
     t.index ["campaign_id"], name: "index_links_on_campaign_id"
     t.index ["custom_domain_id"], name: "index_links_on_custom_domain_id"
     t.index ["link_type"], name: "index_links_on_link_type"

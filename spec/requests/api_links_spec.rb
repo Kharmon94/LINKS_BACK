@@ -241,7 +241,14 @@ RSpec.describe "API Links", type: :request do
 
     it "updates link alert preferences" do
       patch "/api/v1/links/#{link.id}",
-            params: { link: { push_alerts_enabled: false, email_alerts_enabled: false } },
+            params: {
+              link: {
+                push_alerts_enabled: false,
+                email_alerts_enabled: false,
+                alert_interval_value: 2,
+                alert_interval_unit: "months"
+              }
+            },
             headers: { "Authorization" => "Bearer #{token}" },
             as: :json
 
@@ -249,8 +256,21 @@ RSpec.describe "API Links", type: :request do
       body = response.parsed_body["link"]
       expect(body["pushAlertsEnabled"]).to be false
       expect(body["emailAlertsEnabled"]).to be false
+      expect(body["alertIntervalValue"]).to eq(2)
+      expect(body["alertIntervalUnit"]).to eq("months")
       expect(link.reload.push_alerts_enabled).to be false
       expect(link.email_alerts_enabled).to be false
+      expect(link.alert_interval_value).to eq(2)
+      expect(link.alert_interval_unit).to eq("months")
+    end
+
+    it "returns 422 for invalid alert interval unit" do
+      patch "/api/v1/links/#{link.id}",
+            params: { link: { alert_interval_unit: "hours" } },
+            headers: { "Authorization" => "Bearer #{token}" },
+            as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it "returns 404 when another user patches alert preferences" do
@@ -275,6 +295,8 @@ RSpec.describe "API Links", type: :request do
       body = response.parsed_body["link"]
       expect(body["pushAlertsEnabled"]).to be false
       expect(body["emailAlertsEnabled"]).to be true
+      expect(body["alertIntervalValue"]).to eq(1)
+      expect(body["alertIntervalUnit"]).to eq("weeks")
     end
   end
 
