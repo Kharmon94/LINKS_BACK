@@ -27,6 +27,9 @@ module Api
               livePublishableConfigured: StripeMode.live_publishable_configured?
             },
             mail: mail_status,
+            webPush: {
+              configured: ENV["VAPID_PUBLIC_KEY"].present?
+            },
             version: app_version,
             migrationVersion: ActiveRecord::Migrator.current_version
           }

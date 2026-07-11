@@ -34,7 +34,30 @@ module Api
         current_user.web_push_subscriptions.where(endpoint: endpoint).delete_all
         head :no_content
       end
+
+      def test
+        authorize! :create, current_user.web_push_subscriptions.build
+
+        sent = 0
+        errors = []
+
+        current_user.web_push_subscriptions.find_each do |subscription|
+          WebPushSender.send_to!(
+            subscription,
+            title: "Links",
+            body: "Test notification — push is working on this device",
+            url: "/"
+          )
+          sent += 1
+        rescue KeyError, ArgumentError => e
+          errors << e.message
+          break
+        rescue StandardError => e
+          errors << "#{e.class}: #{e.message}"
+        end
+
+        render json: { ok: sent.positive?, sent: sent, errors: errors }
+      end
     end
   end
 end
-

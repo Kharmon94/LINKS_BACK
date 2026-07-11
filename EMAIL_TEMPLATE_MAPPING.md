@@ -13,7 +13,7 @@ Design HTML lives in `links_frontend/email-templates/` (mirrored in `.figma-desi
 | `team-invitation.html` | `TeamMailer#invitation` | Team invite | **Live** HTML+text |
 | Branded shell (light) | `ContactMailer#inbound` | Contact form → ops inbox | **Live** HTML+text |
 
-Shared shell: `app/views/layouts/mailer.html.erb` (logo via `EMAIL_LOGO_URL` / `FRONTEND_ORIGIN` + `/icons/icon.svg`, Montserrat, black CTAs, BlackCollar footer).
+Shared shell: `app/views/layouts/mailer.html.erb` (logo via `EMAIL_LOGO_URL` / `FRONTEND_ORIGIN` + `/icons/icon-512.png`, Montserrat, black CTAs, BlackCollar footer).
 
 Helpers: `MailerHelper` (`frontend_app_url`, `email_logo_url`, dashboard/help/privacy/preferences URLs).
 

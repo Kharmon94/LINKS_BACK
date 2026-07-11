@@ -15,7 +15,7 @@ class WebPushSender
         p256dh: subscription.p256dh,
         auth: subscription.auth,
         vapid: {
-          subject: ENV.fetch("VAPID_SUBJECT", "mailto:support@example.com"),
+          subject: ENV.fetch("VAPID_SUBJECT", "https://links.blackcollar.io"),
           public_key: ENV.fetch("VAPID_PUBLIC_KEY"),
           private_key: ENV.fetch("VAPID_PRIVATE_KEY")
         }

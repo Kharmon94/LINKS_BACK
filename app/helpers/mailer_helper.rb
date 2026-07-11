@@ -9,7 +9,7 @@ module MailerHelper
   end
 
   def email_logo_url
-    ENV["EMAIL_LOGO_URL"].presence || "#{frontend_app_url}/icons/icon.svg"
+    ENV["EMAIL_LOGO_URL"].presence || "#{frontend_app_url}/icons/icon-512.png"
   end
 
   def email_dashboard_url

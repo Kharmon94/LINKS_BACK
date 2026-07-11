@@ -35,7 +35,10 @@ module Api
 
       def notification_preferences
         authorize! :show, current_user
-        render json: { notificationPreferences: current_user.notification_preferences_hash }
+        render json: {
+          notificationPreferences: current_user.notification_preferences_hash,
+          webPushConfigured: ENV["VAPID_PUBLIC_KEY"].present?
+        }
       end
 
       def update_notification_preferences

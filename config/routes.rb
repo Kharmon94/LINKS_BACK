@@ -90,6 +90,7 @@ Rails.application.routes.draw do
       post "cron/weekly_reports", to: "cron#weekly_reports"
       post "cron/link_milestones", to: "cron#link_milestones"
       post "push/subscribe", to: "push_subscriptions#create"
+      post "push/test", to: "push_subscriptions#test"
       delete "push/unsubscribe", to: "push_subscriptions#destroy"
       post "pwa/confirm_install", to: "pwa#confirm_install"
       post "pwa/reset_install", to: "pwa#reset_install"

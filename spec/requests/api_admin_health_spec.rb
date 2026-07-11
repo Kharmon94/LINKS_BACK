@@ -21,6 +21,9 @@ RSpec.describe "Admin health API", type: :request do
       "mailerFrom" => be_present,
       "queueAdapter" => "test"
     )
+    expect(health["webPush"]).to include(
+      "configured" => ENV["VAPID_PUBLIC_KEY"].present?
+    )
   end
 
   it "forbids non-admin" do

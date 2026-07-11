@@ -6,7 +6,7 @@
 | `DEVISE_JWT_SECRET_KEY` | Recommended | JWT signing; defaults to `secret_key_base` if unset |
 | `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links / logo fallback host |
 | `MAILER_FROM` | Production email | From address (default `info@updates.blackcollar.io`) |
-| `EMAIL_LOGO_URL` | Optional | Absolute logo URL for HTML emails; falls back to `FRONTEND_ORIGIN` + `/icons/icon.svg` |
+| `EMAIL_LOGO_URL` | Optional | Absolute logo URL for HTML emails; falls back to `FRONTEND_ORIGIN` + `/icons/icon-512.png` |
 | `CONTACT_INBOX_EMAIL` | Contact form | Inbox for `ContactMailer#inbound` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
@@ -98,6 +98,6 @@ Redirect isolation: verified custom hosts resolve only links on that domain; pen
 `bundle exec rails db:seed` ensures feature flags exist. The **`campaigns`**, **`workspaces`**, and **`custom_domains`** flags are always set to **enabled** on seed (safe to re-run). If `/api/v1/campaigns` returns 403, run seed on the API service or enable campaigns in Admin → Feature Flags. If `/api/v1/team` or workspaces APIs return 403, run seed or enable **workspaces** in Admin → Feature Flags.
 
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push | Web Push VAPID keys |
-| `VAPID_SUBJECT` | Push | Contact for push service, e.g. `mailto:support@...` |
+| `VAPID_SUBJECT` | Push | Contact URI for push service (default `https://links.blackcollar.io`) |
 
 See [.env.example](.env.example) for a copy-paste template.

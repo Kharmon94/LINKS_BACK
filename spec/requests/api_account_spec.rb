@@ -66,6 +66,8 @@ RSpec.describe "API Account", type: :request do
       expect(prefs["email_link_alerts"]).to eq(true)
       expect(prefs["email_weekly_reports"]).to eq(true)
       expect(prefs["email_marketing"]).to eq(false)
+      expect(response.parsed_body).to have_key("webPushConfigured")
+      expect(response.parsed_body["webPushConfigured"]).to eq(ENV["VAPID_PUBLIC_KEY"].present?)
     end
 
     it "persists individual channel toggles" do
