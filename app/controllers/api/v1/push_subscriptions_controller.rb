@@ -44,8 +44,8 @@ module Api
         current_user.web_push_subscriptions.find_each do |subscription|
           WebPushSender.send_to!(
             subscription,
-            title: "Links",
-            body: "Test notification — push is working on this device",
+            title: "Test notification",
+            body: "Push is working on this device",
             url: "/"
           )
           sent += 1

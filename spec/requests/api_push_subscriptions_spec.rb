@@ -75,7 +75,11 @@ RSpec.describe "Push subscriptions", type: :request do
       expect(body["errors"]).to eq([])
       expect(WebPushSender).to have_received(:send_to!).with(
         an_instance_of(WebPushSubscription),
-        hash_including(title: "Links", body: a_string_matching(/Test notification/), url: "/")
+        hash_including(
+          title: "Test notification",
+          body: "Push is working on this device",
+          url: "/"
+        )
       )
     end
 

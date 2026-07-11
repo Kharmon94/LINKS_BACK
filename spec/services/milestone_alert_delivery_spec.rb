@@ -112,7 +112,14 @@ RSpec.describe MilestoneAlertDelivery do
 
       described_class.call(link)
 
-      expect(WebPushSender).to have_received(:send_to!)
+      expect(WebPushSender).to have_received(:send_to!).with(
+        an_instance_of(WebPushSubscription),
+        hash_including(
+          title: "Launch",
+          body: "Your link has 2 clicks",
+          url: a_string_matching(%r{/links/})
+        )
+      )
       expect(link.reload.last_alerted_clicks).to eq(2)
     end
 
