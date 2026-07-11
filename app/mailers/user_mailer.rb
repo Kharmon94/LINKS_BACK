@@ -14,6 +14,22 @@ class UserMailer < ApplicationMailer
     mail to: user.email, subject: "Your link is ready!"
   end
 
+  def link_milestone(user, link, clicks:)
+    @user = user
+    @link = link
+    @clicks = clicks
+    @link_url = "#{frontend_app_url}/links/#{link.public_id}"
+    mail to: user.email, subject: "Link milestone: #{link.name.presence || 'Untitled'}"
+  end
+
+  def campaign_milestone(user, campaign, clicks:)
+    @user = user
+    @campaign = campaign
+    @clicks = clicks
+    @campaign_url = "#{frontend_app_url}/campaigns/#{campaign.public_id}"
+    mail to: user.email, subject: "Campaign milestone: #{campaign.name}"
+  end
+
   private
 
   def frontend_app_url

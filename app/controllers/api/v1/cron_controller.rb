@@ -21,17 +21,34 @@ module Api
       end
 
       def link_milestones
-        push_count = User.find_each.count { |u| u.notification_preferences_hash["push_link_alerts"] }
-        email_count = User.find_each.count { |u| u.notification_preferences_hash["email_link_alerts"] }
-        render json: {
-          ok: true,
-          checked: 0,
-          eligibleUsers: { push: push_count, email: email_count },
-          message: "Link milestone job stub"
-        }
+        checked = 0
+        enqueued = 0
+
+        time_alert_scope(Link).find_each do |link|
+          checked += 1
+          next unless MilestoneAlertDelivery.due?(link)
+
+          DeliverMilestoneAlertJob.perform_later("Link", link.id)
+          enqueued += 1
+        end
+
+        time_alert_scope(Campaign).find_each do |campaign|
+          checked += 1
+          next unless MilestoneAlertDelivery.due?(campaign)
+
+          DeliverMilestoneAlertJob.perform_later("Campaign", campaign.id)
+          enqueued += 1
+        end
+
+        render json: { ok: true, checked: checked, enqueued: enqueued }
       end
 
       private
+
+      def time_alert_scope(model)
+        model.where(alert_interval_kind: "time")
+             .where("push_alerts_enabled = ? OR email_alerts_enabled = ?", true, true)
+      end
 
       def verify_cron_secret!
         secret = ENV["CRON_SECRET"].presence

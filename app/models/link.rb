@@ -108,6 +108,8 @@ class Link < ApplicationRecord
       )
       increment!(:clicks_count)
     end
+
+    enqueue_click_milestone_alerts_if_due
   end
 
   def short_link_host
@@ -153,6 +155,19 @@ class Link < ApplicationRecord
   end
 
   private
+
+  def enqueue_click_milestone_alerts_if_due
+    if alert_interval_kind == "clicks" && MilestoneAlertDelivery.due?(self)
+      DeliverMilestoneAlertJob.perform_later("Link", id)
+    end
+
+    camp = campaign
+    return unless camp
+    return unless camp.alert_interval_kind == "clicks"
+    return unless MilestoneAlertDelivery.due?(camp)
+
+    DeliverMilestoneAlertJob.perform_later("Campaign", camp.id)
+  end
 
   def pool_entry_json(entry)
     {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_08_160000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_11_000000) do
   create_table "app_settings", force: :cascade do |t|
     t.string "key", null: false
     t.text "value"
@@ -47,6 +47,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_160000) do
     t.integer "alert_interval_value", default: 1, null: false
     t.string "alert_interval_unit", default: "weeks", null: false
     t.string "alert_interval_kind", default: "time", null: false
+    t.datetime "last_alerted_at"
+    t.integer "last_alerted_clicks", default: 0, null: false
     t.index ["public_id"], name: "index_campaigns_on_public_id", unique: true
     t.index ["user_id"], name: "index_campaigns_on_user_id"
   end
@@ -128,6 +130,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_160000) do
     t.integer "alert_interval_value", default: 1, null: false
     t.string "alert_interval_unit", default: "weeks", null: false
     t.string "alert_interval_kind", default: "time", null: false
+    t.datetime "last_alerted_at"
+    t.integer "last_alerted_clicks", default: 0, null: false
     t.index ["campaign_id"], name: "index_links_on_campaign_id"
     t.index ["custom_domain_id"], name: "index_links_on_custom_domain_id"
     t.index ["link_type"], name: "index_links_on_link_type"
