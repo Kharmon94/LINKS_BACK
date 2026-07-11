@@ -1,13 +1,58 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <style>
-      /* Email styles need to be inline */
-    </style>
-  </head>
-
-  <body>
-    <%= yield %>
-  </body>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Links</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; background: #ffffff; }
+    * { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+    table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
+    img { -ms-interpolation-mode: bicubic; }
+    a[x-apple-data-detectors] { border-bottom: 0 !important; cursor: default !important; color: inherit !important; text-decoration: none !important; }
+    @media only screen and (max-width: 600px) {
+      .email-container { width: 100% !important; margin: auto !important; }
+    }
+  </style>
+</head>
+<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f5f5f5; font-family: 'Montserrat', Arial, sans-serif;">
+  <center style="width: 100%; background-color: #f5f5f5;">
+    <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: auto;" class="email-container">
+      <tr>
+        <td style="padding: 40px 20px 20px 20px; text-align: center; background-color: #ffffff;">
+          <img src="<%= email_logo_url %>" width="180" height="auto" alt="Links" border="0" style="height: auto; font-family: 'Montserrat', sans-serif; font-size: 24px; line-height: 24px; color: #000000; font-weight: 700;">
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 0; background-color: #ffffff;">
+          <%= yield %>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 40px 20px; background-color: #ffffff; border-top: 1px solid #e5e5e5;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+              <td style="padding: 0; text-align: center; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; line-height: 18px; color: #666666;">
+                <p style="margin: 0 0 10px 0;">© <%= Time.current.year %> BlackCollar. All rights reserved.</p>
+                <p style="margin: 0 0 10px 0;">
+                  <a href="<%= email_dashboard_url %>" style="color: #000000; text-decoration: underline;">Dashboard</a> •
+                  <a href="<%= email_help_url %>" style="color: #000000; text-decoration: underline;">Help Center</a> •
+                  <a href="<%= email_privacy_url %>" style="color: #000000; text-decoration: underline;">Privacy</a>
+                </p>
+                <p style="margin: 0; color: #999999; font-size: 11px;">
+                  You're receiving this email because you have an account with Links.<br>
+                  <a href="<%= email_preferences_url %>" style="color: #999999; text-decoration: underline;">Email preferences</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
 </html>

@@ -14,8 +14,9 @@ Configure Railway Cron or another scheduler to POST to the deployed API URL with
 
 - Endpoint: `POST /api/v1/cron/link_milestones`
 - Scans links and campaigns with `alert_interval_kind=time` and push or email alerts enabled
-- Enqueues `DeliverMilestoneAlertJob` for entities whose interval is due
-- Response: `{ ok, checked, enqueued }`
+- Runs `DeliverMilestoneAlertJob.perform_now` for each due entity (same reliability as click milestones; does not depend on a background job adapter)
+- **Production must schedule this cron** (Railway Cron or equivalent) or time-based alerts will never fire
+- Response: `{ ok, checked, enqueued }` (`enqueued` = number of due entities processed)
 - Recommended schedule: hourly or daily
 
 Example:

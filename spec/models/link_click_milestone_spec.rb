@@ -53,6 +53,34 @@ RSpec.describe "Link click milestone enqueue", type: :model do
     expect(link.reload.last_alerted_clicks).to eq(1)
   end
 
+  it "sends push when a WebPushSubscription exists on click milestone" do
+    link = Link.create!(
+      user: user,
+      destination_url: "https://example.com",
+      name: "Push Threshold",
+      short_code: "psh001",
+      clicks_count: 0,
+      alert_interval_kind: "clicks",
+      alert_interval_value: 1,
+      push_alerts_enabled: true,
+      email_alerts_enabled: false,
+      last_alerted_clicks: 0
+    )
+    user.web_push_subscriptions.create!(
+      endpoint: "https://push.example/click",
+      p256dh: "p256dh",
+      auth: "auth"
+    )
+    allow(WebPushSender).to receive(:send_to!)
+
+    expect(DeliverMilestoneAlertJob).to receive(:perform_now).with("Link", link.id).and_call_original
+
+    link.record_click_from_metadata!(metadata)
+
+    expect(WebPushSender).to have_received(:send_to!)
+    expect(link.reload.last_alerted_clicks).to eq(1)
+  end
+
   it "delivers campaign milestone when campaign click threshold is crossed" do
     campaign = Campaign.create!(
       user: user,

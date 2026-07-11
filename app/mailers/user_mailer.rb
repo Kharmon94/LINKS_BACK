@@ -11,6 +11,7 @@ class UserMailer < ApplicationMailer
     @user = user
     @link = link
     @short_url = "https://#{link.short_link_host}/#{link.short_code}"
+    @dashboard_url = frontend_app_url
     mail to: user.email, subject: "Your link is ready!"
   end
 
@@ -19,6 +20,7 @@ class UserMailer < ApplicationMailer
     @link = link
     @clicks = clicks
     @link_url = "#{frontend_app_url}/links/#{link.public_id}"
+    @short_url = "https://#{link.short_link_host}/#{link.short_code}"
     mail to: user.email, subject: "Link milestone: #{link.name.presence || 'Untitled'}"
   end
 
@@ -28,11 +30,5 @@ class UserMailer < ApplicationMailer
     @clicks = clicks
     @campaign_url = "#{frontend_app_url}/campaigns/#{campaign.public_id}"
     mail to: user.email, subject: "Campaign milestone: #{campaign.name}"
-  end
-
-  private
-
-  def frontend_app_url
-    ENV.fetch("FRONTEND_ORIGIN", "http://localhost:5173").chomp("/")
   end
 end

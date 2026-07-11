@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class ContactMailer < ApplicationMailer
-  default from: ENV.fetch("MAILER_FROM", "noreply@example.com")
-
   def inbound(name:, email:, message:)
     @name = name
     @email = email

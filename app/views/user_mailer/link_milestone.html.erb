@@ -1,0 +1,49 @@
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding: 40px 40px 0 40px; background-color: #ffffff; text-align: center;">
+      <h1 style="margin: 0 0 10px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 32px; line-height: 40px; color: #000000; font-weight: 300;">Milestone Reached!</h1>
+      <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #666666;">Your link just hit <%= number_with_delimiter(@clicks) %> clicks</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 40px; background-color: #ffffff;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td style="padding: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333;">
+            <p style="margin: 0 0 30px 0; text-align: center;">Hi <%= @user.name.presence || "there" %>, great news! Your link has reached an impressive milestone.</p>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #000000; margin-bottom: 30px;">
+              <tr>
+                <td style="padding: 40px; text-align: center;">
+                  <p style="margin: 0 0 20px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Total Clicks</p>
+                  <p style="margin: 0 0 30px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 72px; line-height: 72px; color: #ffffff; font-weight: 700;"><%= number_with_delimiter(@clicks) %></p>
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-top: 1px solid rgba(255,255,255,0.2);">
+                    <tr>
+                      <td style="padding: 20px 0 10px 0;">
+                        <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px;">Link Name</p>
+                        <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 18px; color: #ffffff; font-weight: 600;"><%= @link.name.presence || "Untitled" %></p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 10px 0 0 0;">
+                        <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px;">Short URL</p>
+                        <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #ffffff; word-break: break-all;"><%= @short_url %></p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto 20px auto;">
+              <tr>
+                <td style="background-color: #000000; text-align: center;">
+                  <a href="<%= @link_url %>" style="background-color: #000000; border: 1px solid #000000; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 16px; text-decoration: none; padding: 16px 40px; color: #ffffff; display: block; font-weight: 600;">View Full Analytics</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin: 30px 0 0 0; text-align: center;">Congratulations on your success!<br><strong>The Links Team</strong></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

@@ -38,7 +38,7 @@ RSpec.describe "API Cron link_milestones", type: :request do
     expect(response).to have_http_status(:unauthorized)
   end
 
-  it "enqueues due time-based entities and returns counts" do
+  it "delivers due time-based entities inline and returns counts" do
     due_link = Link.create!(
       user: user,
       destination_url: "https://example.com",
@@ -77,9 +77,14 @@ RSpec.describe "API Cron link_milestones", type: :request do
       created_at: 3.days.ago
     )
 
+    allow(WebPushSender).to receive(:send_to!)
+
+    expect(DeliverMilestoneAlertJob).to receive(:perform_now).with("Link", due_link.id).and_call_original
+    expect(DeliverMilestoneAlertJob).to receive(:perform_now).with("Campaign", kind_of(Integer)).and_call_original
+
     expect do
       post "/api/v1/cron/link_milestones", headers: cron_headers, as: :json
-    end.to have_enqueued_job(DeliverMilestoneAlertJob).exactly(2).times
+    end.not_to have_enqueued_job(DeliverMilestoneAlertJob)
 
     expect(response).to have_http_status(:ok)
     body = JSON.parse(response.body)
@@ -89,7 +94,7 @@ RSpec.describe "API Cron link_milestones", type: :request do
     expect(due_link.reload.alert_interval_kind).to eq("time")
   end
 
-  it "does not enqueue click-based entities from cron" do
+  it "does not deliver click-based entities from cron" do
     Link.create!(
       user: user,
       destination_url: "https://example.com",
@@ -101,6 +106,8 @@ RSpec.describe "API Cron link_milestones", type: :request do
       clicks_count: 5,
       last_alerted_clicks: 0
     )
+
+    expect(DeliverMilestoneAlertJob).not_to receive(:perform_now)
 
     expect do
       post "/api/v1/cron/link_milestones", headers: cron_headers, as: :json

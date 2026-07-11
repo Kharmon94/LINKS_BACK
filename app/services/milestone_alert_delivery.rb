@@ -20,7 +20,11 @@ class MilestoneAlertDelivery
       return false unless any_channel_eligible?
 
       delivered = false
-      delivered = true if push_eligible? && deliver_push
+      if push_eligible?
+        push_ok = deliver_push
+        delivered = true if push_ok
+        warn_push_missed! unless push_ok
+      end
       delivered = true if email_eligible? && deliver_email
 
       # Only advance when something was actually sent/queued. Otherwise a link with
@@ -136,6 +140,14 @@ class MilestoneAlertDelivery
       Rails.logger.error("[MilestoneAlertDelivery] push failed: #{e.class}: #{e.message}")
     end
     sent
+  end
+
+  def warn_push_missed!
+    sub_count = user.web_push_subscriptions.count
+    Rails.logger.warn(
+      "[MilestoneAlertDelivery] push eligible but no successful send " \
+      "user_id=#{user.id} #{entity_label}_id=#{@entity.id} subscriptions=#{sub_count}"
+    )
   end
 
   # Returns true if the mailer was enqueued.

@@ -4,7 +4,10 @@
 |----------|----------|--------|
 | `SECRET_KEY_BASE` / `RAILS_MASTER_KEY` | Production | Rails secret |
 | `DEVISE_JWT_SECRET_KEY` | Recommended | JWT signing; defaults to `secret_key_base` if unset |
-| `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links |
+| `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links / logo fallback host |
+| `MAILER_FROM` | Production email | From address (default `info@updates.blackcollar.io`) |
+| `EMAIL_LOGO_URL` | Optional | Absolute logo URL for HTML emails; falls back to `FRONTEND_ORIGIN` + `/icons/icon.svg` |
+| `CONTACT_INBOX_EMAIL` | Contact form | Inbox for `ContactMailer#inbound` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
 | `STRIPE_PRICE_PRO_MONTHLY` / `YEARLY` (+ `_LIVE`) | Billing | `db:seed` ensures Pro plan when set |

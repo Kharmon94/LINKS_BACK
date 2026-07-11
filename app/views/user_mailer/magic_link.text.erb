@@ -1,7 +1,11 @@
 Sign in to Links
 
-Click the link below to set your password and sign in (expires in 15 minutes):
+Hi <%= @user.name.presence || "there" %>,
+
+Click the link below to sign in (expires in 15 minutes):
 
 <%= @verify_url %>
 
 If you did not request this, ignore this email.
+
+— The Links Team

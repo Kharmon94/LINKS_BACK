@@ -24,11 +24,13 @@ module Api
         checked = 0
         enqueued = 0
 
+        # perform_now: cron HTTP request is already async from the scheduler's POV;
+        # avoids depending on Solid Queue / Active Job adapter for time milestones.
         time_alert_scope(Link).find_each do |link|
           checked += 1
           next unless MilestoneAlertDelivery.due?(link)
 
-          DeliverMilestoneAlertJob.perform_later("Link", link.id)
+          DeliverMilestoneAlertJob.perform_now("Link", link.id)
           enqueued += 1
         end
 
@@ -36,7 +38,7 @@ module Api
           checked += 1
           next unless MilestoneAlertDelivery.due?(campaign)
 
-          DeliverMilestoneAlertJob.perform_later("Campaign", campaign.id)
+          DeliverMilestoneAlertJob.perform_now("Campaign", campaign.id)
           enqueued += 1
         end
 

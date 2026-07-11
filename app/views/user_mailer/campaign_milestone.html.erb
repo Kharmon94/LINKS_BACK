@@ -1,0 +1,35 @@
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td style="padding: 40px 40px 20px 40px; background-color: #ffffff; text-align: center;">
+      <h1 style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 28px; line-height: 36px; color: #000000; font-weight: 300;">Campaign Milestone</h1>
+      <p style="margin: 10px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 18px; color: #000000; font-weight: 600;"><%= @campaign.name %></p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 0 40px 40px 40px; background-color: #ffffff;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td style="padding: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333;">
+            <p style="margin: 0 0 30px 0; text-align: center;">Hi <%= @user.name.presence || "there" %>, your campaign just hit a new click milestone.</p>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #000000; color: #ffffff; margin-bottom: 30px;">
+              <tr>
+                <td style="padding: 30px; text-align: center;">
+                  <p style="margin: 0 0 10px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Total Clicks</p>
+                  <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 42px; line-height: 42px; color: #ffffff; font-weight: 700;"><%= number_with_delimiter(@clicks) %></p>
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto 20px auto;">
+              <tr>
+                <td style="background-color: #000000; text-align: center;">
+                  <a href="<%= @campaign_url %>" style="background-color: #000000; border: 1px solid #000000; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 16px; text-decoration: none; padding: 16px 40px; color: #ffffff; display: block; font-weight: 600;">View Campaign</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin: 20px 0 0 0; text-align: center;">Keep it up!<br><strong>The Links Team</strong></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

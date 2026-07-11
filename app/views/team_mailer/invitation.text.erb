@@ -1,0 +1,12 @@
+You've been invited to join <%= @team.name %> on Links
+
+<%= @inviter.name.presence || @inviter.email %> (<%= @inviter.email %>) invited you as <%= @role %>.
+
+Accept the invitation:
+<%= @accept_url %>
+
+This invitation expires in <%= @expiry_days %> days.
+
+If you weren't expecting this, ignore this email.
+
+— The Links Team

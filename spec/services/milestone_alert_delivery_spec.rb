@@ -75,6 +75,10 @@ RSpec.describe MilestoneAlertDelivery do
     it "advances last_alerted_clicks when email is queued even with zero push subs" do
       expect(user.web_push_subscriptions).to be_empty
 
+      expect(Rails.logger).to receive(:warn).with(
+        a_string_matching(/push eligible but no successful send.*user_id=#{user.id}.*link_id=#{link.id}/)
+      )
+
       expect do
         described_class.call(link)
       end.to have_enqueued_job(ActionMailer::MailDeliveryJob)
@@ -85,6 +89,10 @@ RSpec.describe MilestoneAlertDelivery do
     it "does not advance baselines when push is eligible but no subscriptions and email is off" do
       link.update!(email_alerts_enabled: false)
       expect(user.web_push_subscriptions).to be_empty
+
+      expect(Rails.logger).to receive(:warn).with(
+        a_string_matching(/push eligible but no successful send/)
+      )
 
       described_class.call(link)
 
@@ -100,10 +108,31 @@ RSpec.describe MilestoneAlertDelivery do
       )
       allow(WebPushSender).to receive(:send_to!)
 
+      expect(Rails.logger).not_to receive(:warn).with(a_string_matching(/push eligible but no successful send/))
+
       described_class.call(link)
 
       expect(WebPushSender).to have_received(:send_to!)
       expect(link.reload.last_alerted_clicks).to eq(2)
+    end
+
+    it "warns when all push sends fail and email is off" do
+      link.update!(email_alerts_enabled: false)
+      user.web_push_subscriptions.create!(
+        endpoint: "https://push.example/fail",
+        p256dh: "p256dh",
+        auth: "auth"
+      )
+      allow(WebPushSender).to receive(:send_to!).and_raise(StandardError, "boom")
+
+      expect(Rails.logger).to receive(:error).with(a_string_matching(/push failed/))
+      expect(Rails.logger).to receive(:warn).with(
+        a_string_matching(/push eligible but no successful send.*subscriptions=1/)
+      )
+
+      described_class.call(link)
+
+      expect(link.reload.last_alerted_clicks).to eq(0)
     end
 
     it "does not advance baselines when no channel is eligible" do

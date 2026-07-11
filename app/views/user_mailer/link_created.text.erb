@@ -1,3 +1,11 @@
 Your short link is live: <%= @short_url %>
 
+<% if @link.name.present? %>
+Link name: <%= @link.name %>
+<% end %>
+
+Open your dashboard: <%= @dashboard_url %>
+
 Use the magic link email we sent separately to access your dashboard.
+
+— The Links Team
