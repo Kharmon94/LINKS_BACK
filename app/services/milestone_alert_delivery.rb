@@ -110,14 +110,14 @@ class MilestoneAlertDelivery
     ENV.fetch("FRONTEND_ORIGIN", "http://localhost:5173").chomp("/")
   end
 
-  # Use the entity name as title — not the app brand. iOS PWAs append
+  # Keep title generic — not the app brand. iOS PWAs append
   # "from {manifest name}" under the title; title "Links" read as "Links from Links".
   def notification_title
-    entity_name
+    "New Click"
   end
 
   def notification_body
-    %(Your #{entity_label} has #{current_clicks} clicks)
+    "#{entity_name} has #{current_clicks} clicks"
   end
 
   # Returns true if at least one push was sent successfully.

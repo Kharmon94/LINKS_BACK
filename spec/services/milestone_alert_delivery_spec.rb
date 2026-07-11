@@ -115,8 +115,8 @@ RSpec.describe MilestoneAlertDelivery do
       expect(WebPushSender).to have_received(:send_to!).with(
         an_instance_of(WebPushSubscription),
         hash_including(
-          title: "Launch",
-          body: "Your link has 2 clicks",
+          title: "New Click",
+          body: "Launch has 2 clicks",
           url: a_string_matching(%r{/links/})
         )
       )
@@ -220,6 +220,35 @@ RSpec.describe MilestoneAlertDelivery do
       allow(WebPushSender).to receive(:send_to!)
       described_class.call(campaign)
       expect(campaign.reload.last_alerted_clicks).to eq(3)
+    end
+
+    it "sends push with New Click title and campaign click body" do
+      Link.create!(
+        user: user,
+        campaign: campaign,
+        destination_url: "https://example.com/a",
+        name: "A",
+        short_code: "campa2",
+        clicks_count: 3
+      )
+      campaign.update!(email_alerts_enabled: false)
+      user.web_push_subscriptions.create!(
+        endpoint: "https://push.example/camp",
+        p256dh: "p256dh",
+        auth: "auth"
+      )
+      allow(WebPushSender).to receive(:send_to!)
+
+      described_class.call(campaign)
+
+      expect(WebPushSender).to have_received(:send_to!).with(
+        an_instance_of(WebPushSubscription),
+        hash_including(
+          title: "New Click",
+          body: "Spring has 3 clicks",
+          url: a_string_matching(%r{/campaigns/})
+        )
+      )
     end
   end
 end
