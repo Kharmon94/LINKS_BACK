@@ -153,7 +153,7 @@ RSpec.describe MilestoneAlertDelivery do
       )
       fake_response = Struct.new(:code, :body).new("410", "")
       allow(WebPushSender).to receive(:send_to!).and_raise(
-        Webpush::ExpiredSubscription.new(fake_response, "push.example")
+        WebPush::ExpiredSubscription.new(fake_response, "push.example")
       )
 
       described_class.call(link)

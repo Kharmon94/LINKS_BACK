@@ -129,9 +129,9 @@ class MilestoneAlertDelivery
         url: deep_link_url
       )
       sent = true
-    rescue Webpush::InvalidSubscription, Webpush::ExpiredSubscription
+    rescue WebPush::InvalidSubscription, WebPush::ExpiredSubscription
       subscription.destroy
-    rescue Webpush::ResponseError => e
+    rescue WebPush::ResponseError => e
       subscription.destroy if e.response&.code.to_s == "410"
     rescue KeyError, ArgumentError => e
       Rails.logger.error("[MilestoneAlertDelivery] push config error: #{e.message}")

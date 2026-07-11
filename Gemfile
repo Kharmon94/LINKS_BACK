@@ -19,7 +19,7 @@ gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 gem "cancancan"
 gem "stripe"
-gem "webpush", ">= 1.0"
+gem "web-push", ">= 3.0"
 gem "geocoder"
 gem "countries"
 
