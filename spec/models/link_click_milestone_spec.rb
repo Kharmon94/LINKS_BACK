@@ -30,7 +30,7 @@ RSpec.describe "Link click milestone enqueue", type: :model do
     }
   end
 
-  it "enqueues DeliverMilestoneAlertJob when click threshold is crossed" do
+  it "delivers milestone when click threshold is crossed" do
     link = Link.create!(
       user: user,
       destination_url: "https://example.com",
@@ -40,21 +40,27 @@ RSpec.describe "Link click milestone enqueue", type: :model do
       alert_interval_kind: "clicks",
       alert_interval_value: 1,
       push_alerts_enabled: true,
+      email_alerts_enabled: true,
       last_alerted_clicks: 0
     )
 
+    expect(DeliverMilestoneAlertJob).to receive(:perform_now).with("Link", link.id).and_call_original
+
     expect do
       link.record_click_from_metadata!(metadata)
-    end.to have_enqueued_job(DeliverMilestoneAlertJob).with("Link", link.id)
+    end.to have_enqueued_job(ActionMailer::MailDeliveryJob)
+
+    expect(link.reload.last_alerted_clicks).to eq(1)
   end
 
-  it "enqueues campaign job when campaign click threshold is crossed" do
+  it "delivers campaign milestone when campaign click threshold is crossed" do
     campaign = Campaign.create!(
       user: user,
       name: "Camp",
       alert_interval_kind: "clicks",
       alert_interval_value: 1,
       push_alerts_enabled: true,
+      email_alerts_enabled: true,
       last_alerted_clicks: 0
     )
     link = Link.create!(
@@ -69,12 +75,16 @@ RSpec.describe "Link click milestone enqueue", type: :model do
       alert_interval_unit: "weeks"
     )
 
+    expect(DeliverMilestoneAlertJob).to receive(:perform_now).with("Campaign", campaign.id).and_call_original
+
     expect do
       link.record_click_from_metadata!(metadata)
-    end.to have_enqueued_job(DeliverMilestoneAlertJob).with("Campaign", campaign.id)
+    end.to have_enqueued_job(ActionMailer::MailDeliveryJob)
+
+    expect(campaign.reload.last_alerted_clicks).to eq(1)
   end
 
-  it "does not enqueue when below click threshold" do
+  it "does not deliver when below click threshold" do
     link = Link.create!(
       user: user,
       destination_url: "https://example.com",
@@ -84,11 +94,13 @@ RSpec.describe "Link click milestone enqueue", type: :model do
       alert_interval_kind: "clicks",
       alert_interval_value: 5,
       push_alerts_enabled: true,
+      email_alerts_enabled: true,
       last_alerted_clicks: 0
     )
 
-    expect do
-      link.record_click_from_metadata!(metadata)
-    end.not_to have_enqueued_job(DeliverMilestoneAlertJob)
+    expect(DeliverMilestoneAlertJob).not_to receive(:perform_now)
+
+    link.record_click_from_metadata!(metadata)
+    expect(link.reload.last_alerted_clicks).to eq(0)
   end
 end

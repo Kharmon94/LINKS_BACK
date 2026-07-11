@@ -72,13 +72,37 @@ RSpec.describe MilestoneAlertDelivery do
       link.update!(clicks_count: 2)
     end
 
-    it "advances last_alerted_clicks after attempting eligible channels with zero push subs" do
+    it "advances last_alerted_clicks when email is queued even with zero push subs" do
       expect(user.web_push_subscriptions).to be_empty
 
       expect do
         described_class.call(link)
       end.to have_enqueued_job(ActionMailer::MailDeliveryJob)
 
+      expect(link.reload.last_alerted_clicks).to eq(2)
+    end
+
+    it "does not advance baselines when push is eligible but no subscriptions and email is off" do
+      link.update!(email_alerts_enabled: false)
+      expect(user.web_push_subscriptions).to be_empty
+
+      described_class.call(link)
+
+      expect(link.reload.last_alerted_clicks).to eq(0)
+    end
+
+    it "advances after a successful push send" do
+      link.update!(email_alerts_enabled: false)
+      user.web_push_subscriptions.create!(
+        endpoint: "https://push.example/ok",
+        p256dh: "p256dh",
+        auth: "auth"
+      )
+      allow(WebPushSender).to receive(:send_to!)
+
+      described_class.call(link)
+
+      expect(WebPushSender).to have_received(:send_to!)
       expect(link.reload.last_alerted_clicks).to eq(2)
     end
 

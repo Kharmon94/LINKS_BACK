@@ -157,8 +157,10 @@ class Link < ApplicationRecord
   private
 
   def enqueue_click_milestone_alerts_if_due
+    # perform_now: click alerts must not depend on a background worker (Solid Queue
+    # is optional and often unset on single-service deploys).
     if alert_interval_kind == "clicks" && MilestoneAlertDelivery.due?(self)
-      DeliverMilestoneAlertJob.perform_later("Link", id)
+      DeliverMilestoneAlertJob.perform_now("Link", id)
     end
 
     camp = campaign
@@ -166,7 +168,7 @@ class Link < ApplicationRecord
     return unless camp.alert_interval_kind == "clicks"
     return unless MilestoneAlertDelivery.due?(camp)
 
-    DeliverMilestoneAlertJob.perform_later("Campaign", camp.id)
+    DeliverMilestoneAlertJob.perform_now("Campaign", camp.id)
   end
 
   def pool_entry_json(entry)

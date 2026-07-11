@@ -15,11 +15,18 @@ class MilestoneAlertDelivery
 
   def call
     @entity.with_lock do
+      @entity.reload
       return false unless due?
       return false unless any_channel_eligible?
 
-      deliver_push if push_eligible?
-      deliver_email if email_eligible?
+      delivered = false
+      delivered = true if push_eligible? && deliver_push
+      delivered = true if email_eligible? && deliver_email
+
+      # Only advance when something was actually sent/queued. Otherwise a link with
+      # push enabled but no device subscription would silently burn the milestone.
+      return false unless delivered
+
       advance_baselines!
       true
     end
@@ -107,7 +114,9 @@ class MilestoneAlertDelivery
     %(Your #{entity_label} "#{entity_name}" has #{current_clicks} clicks)
   end
 
+  # Returns true if at least one push was sent successfully.
   def deliver_push
+    sent = false
     user.web_push_subscriptions.find_each do |subscription|
       WebPushSender.send_to!(
         subscription,
@@ -115,19 +124,28 @@ class MilestoneAlertDelivery
         body: notification_body,
         url: deep_link_url
       )
+      sent = true
     rescue Webpush::InvalidSubscription, Webpush::ExpiredSubscription
       subscription.destroy
     rescue Webpush::ResponseError => e
       subscription.destroy if e.response&.code.to_s == "410"
+    rescue KeyError, ArgumentError => e
+      Rails.logger.error("[MilestoneAlertDelivery] push config error: #{e.message}")
+      break
+    rescue StandardError => e
+      Rails.logger.error("[MilestoneAlertDelivery] push failed: #{e.class}: #{e.message}")
     end
+    sent
   end
 
+  # Returns true if the mailer was enqueued.
   def deliver_email
     if @entity.is_a?(Campaign)
       UserMailer.campaign_milestone(user, @entity, clicks: current_clicks).deliver_later
     else
       UserMailer.link_milestone(user, @entity, clicks: current_clicks).deliver_later
     end
+    true
   end
 
   def advance_baselines!
