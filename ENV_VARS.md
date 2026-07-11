@@ -6,7 +6,7 @@
 | `DEVISE_JWT_SECRET_KEY` | Recommended | JWT signing; defaults to `secret_key_base` if unset |
 | `FRONTEND_ORIGIN` | Production | CORS + OAuth redirect + mailer links / logo fallback host |
 | `MAILER_FROM` | Production email | From address (default `info@updates.blackcollar.io`) |
-| `EMAIL_LOGO_URL` | Optional | Absolute logo URL for HTML emails; falls back to `FRONTEND_ORIGIN` + `/icons/icon-512.png` |
+| `EMAIL_LOGO_URL` | Optional | Absolute B-mark logo URL for HTML emails; falls back to `FRONTEND_ORIGIN` + `/icons/icon-512.png` |
 | `CONTACT_INBOX_EMAIL` | Contact form | Inbox for `ContactMailer#inbound` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | For Google sign-in | OAuth client |
 | `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` | Optional deploy | `db:seed` ensures admin only when both are set |
